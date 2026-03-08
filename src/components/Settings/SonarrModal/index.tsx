@@ -85,7 +85,7 @@ const messages = defineMessages('components.Settings.SonarrModal', {
     'Whether Sonarr should monitor (All) or not (None) new seasons when a series is added.',
   apiKeyHelp: 'Find it in Sonarr: Settings > General > Security > API Key',
   baseUrlHelp:
-    'Only if you use a reverse proxy with a path (e.g. /sonarr). Leave blank otherwise.',
+    'If you set a URL Base in Sonarr (Settings > General > Host), enter it here (e.g. /sonarr). Leave blank otherwise.',
   externalUrlHelp:
     'For clickable links on media pages when the hostname is not reachable from outside your network.',
   syncEnabledHelp:

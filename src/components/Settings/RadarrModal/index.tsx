@@ -76,7 +76,7 @@ const messages = defineMessages('components.Settings.RadarrModal', {
   released: 'Released',
   apiKeyHelp: 'Find it in Radarr: Settings > General > Security > API Key',
   baseUrlHelp:
-    'Only if you use a reverse proxy with a path (e.g. /radarr). Leave blank otherwise.',
+    'If you set a URL Base in Radarr (Settings > General > Host), enter it here (e.g. /radarr). Leave blank otherwise.',
   externalUrlHelp:
     'For clickable links on media pages when the hostname is not reachable from outside your network.',
   syncEnabledHelp:

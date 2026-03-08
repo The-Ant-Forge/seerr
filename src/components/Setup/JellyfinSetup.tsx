@@ -45,7 +45,7 @@ const messages = defineMessages('components.Login', {
   servertype: 'Server Type',
   back: 'Go back',
   urlBaseHelp:
-    'Only needed if you use a reverse proxy with a path prefix (e.g. /jellyfin). Must start with /. Leave blank otherwise.',
+    'If you set a Base URL in Jellyfin (Dashboard > Networking), enter it here (e.g. /jellyfin). Leave blank otherwise.',
 });
 
 interface JellyfinSetupProps {
