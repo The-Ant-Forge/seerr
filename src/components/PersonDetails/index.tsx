@@ -7,7 +7,7 @@ import PageTitle from '@app/components/Common/PageTitle';
 import ActorSubscribeModal from '@app/components/PersonDetails/ActorSubscribeModal';
 import TitleCard from '@app/components/TitleCard';
 import globalMessages from '@app/i18n/globalMessages';
-import Error from '@app/pages/_error';
+import ErrorPage from '@app/pages/_error';
 import defineMessages from '@app/utils/defineMessages';
 import {
   CircleStackIcon,
@@ -117,7 +117,7 @@ const PersonDetails = () => {
   }
 
   if (!data) {
-    return <Error statusCode={404} />;
+    return <ErrorPage statusCode={404} />;
   }
 
   const personAttributes: string[] = [];
