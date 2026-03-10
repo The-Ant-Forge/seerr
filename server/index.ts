@@ -171,7 +171,7 @@ app
             sameSite: true,
             secure: !dev,
           },
-        })
+        }) as unknown as express.RequestHandler
       );
       server.use((req, res, next) => {
         res.cookie('XSRF-TOKEN', req.csrfToken(), {
