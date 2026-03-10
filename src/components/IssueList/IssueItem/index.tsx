@@ -13,7 +13,7 @@ import type Issue from '@server/entity/Issue';
 import type { MovieDetails } from '@server/models/Movie';
 import type { TvDetails } from '@server/models/Tv';
 import Link from 'next/link';
-import { useInView } from 'react-intersection-observer';
+import { useInView } from '@app/hooks/useInView';
 import { FormattedRelativeTime, useIntl } from 'react-intl';
 import useSWR from 'swr';
 

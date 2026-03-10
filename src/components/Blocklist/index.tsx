@@ -30,7 +30,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import type { ChangeEvent } from 'react';
 import { useState } from 'react';
-import { useInView } from 'react-intersection-observer';
+import { useInView } from '@app/hooks/useInView';
 import { FormattedRelativeTime, useIntl } from 'react-intl';
 import { useToasts } from 'react-toast-notifications';
 import useSWR from 'swr';

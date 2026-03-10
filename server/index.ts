@@ -28,7 +28,6 @@ import { getAppVersion } from '@server/utils/appVersion';
 import createCustomProxyAgent from '@server/utils/customProxyAgent';
 import { initializeDnsCache } from '@server/utils/dnsCache';
 import restartFlag from '@server/utils/restartFlag';
-import { getClientIp } from '@supercharge/request-ip';
 import axios from 'axios';
 import { TypeormStore } from 'connect-typeorm/out';
 import cookieParser from 'cookie-parser';
@@ -161,24 +160,8 @@ app
     server.use(cookieParser());
     server.use(express.json());
     server.use(express.urlencoded({ extended: true }));
-    server.use((req, _res, next) => {
-      try {
-        const descriptor = Object.getOwnPropertyDescriptor(req, 'ip');
-        if (descriptor?.writable === true) {
-          Object.defineProperty(req, 'ip', {
-            ...descriptor,
-            value: getClientIp(req) ?? '',
-          });
-        }
-      } catch (e) {
-        logger.error('Failed to attach the ip to the request', {
-          label: 'Middleware',
-          message: (e as Error).message,
-        });
-      } finally {
-        next();
-      }
-    });
+    // Express's built-in req.ip respects the 'trust proxy' setting above,
+    // so no custom IP extraction middleware is needed.
     if (settings.network.csrfProtection) {
       server.use(
         csurf({

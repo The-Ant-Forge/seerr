@@ -4,7 +4,7 @@ import defineMessages from '@app/utils/defineMessages';
 import { ArrowRightCircleIcon } from '@heroicons/react/24/solid';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useInView } from 'react-intersection-observer';
+import { useInView } from '@app/hooks/useInView';
 import { useIntl } from 'react-intl';
 
 const messages = defineMessages('components.MediaSlider.ShowMoreCard', {

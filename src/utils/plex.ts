@@ -1,5 +1,4 @@
 import axios from 'axios';
-import Bowser from 'bowser';
 
 interface PlexHeaders extends Record<string, string> {
   Accept: string;
@@ -55,17 +54,41 @@ class PlexOAuth {
       clientId = uuid;
     }
 
-    const browser = Bowser.getParser(window.navigator.userAgent);
+    const ua = window.navigator.userAgent;
+    const browserName = /Edg\//.test(ua)
+      ? 'Edge'
+      : /Chrome\//.test(ua)
+        ? 'Chrome'
+        : /Firefox\//.test(ua)
+          ? 'Firefox'
+          : /Safari\//.test(ua)
+            ? 'Safari'
+            : 'Unknown';
+    const browserVersion =
+      ua.match(/(?:Edg|Chrome|Firefox|Version)\/(\d+[\d.]*)/)?.[1] ??
+      'Unknown';
+    const osName = /Windows/.test(ua)
+      ? 'Windows'
+      : /Mac OS/.test(ua)
+        ? 'macOS'
+        : /Linux/.test(ua)
+          ? 'Linux'
+          : /Android/.test(ua)
+            ? 'Android'
+            : /iPhone|iPad/.test(ua)
+              ? 'iOS'
+              : 'Unknown';
+
     this.plexHeaders = {
       Accept: 'application/json',
       'X-Plex-Product': 'Seerr',
       'X-Plex-Version': 'Plex OAuth',
       'X-Plex-Client-Identifier': clientId,
       'X-Plex-Model': 'Plex OAuth',
-      'X-Plex-Platform': browser.getBrowserName(),
-      'X-Plex-Platform-Version': browser.getBrowserVersion() || 'Unknown',
-      'X-Plex-Device': browser.getOSName(),
-      'X-Plex-Device-Name': `${browser.getBrowserName()} (Seerr)`,
+      'X-Plex-Platform': browserName,
+      'X-Plex-Platform-Version': browserVersion,
+      'X-Plex-Device': osName,
+      'X-Plex-Device-Name': `${browserName} (Seerr)`,
       'X-Plex-Device-Screen-Resolution':
         window.screen.width + 'x' + window.screen.height,
       'X-Plex-Language': 'en',

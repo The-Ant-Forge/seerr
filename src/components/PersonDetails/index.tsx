@@ -14,7 +14,7 @@ import { groupBy } from 'lodash';
 import { useRouter } from 'next/router';
 import { useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
-import TruncateMarkup from 'react-truncate-markup';
+
 import useSWR from 'swr';
 
 const messages = defineMessages('components.PersonDetails', {
@@ -302,14 +302,16 @@ const PersonDetails = () => {
                 role="button"
                 tabIndex={-1}
               >
-                <TruncateMarkup
-                  lines={showBio ? 200 : 6}
-                  ellipsis={
-                    <Ellipsis className="relative -top-0.5 ml-2 inline-block opacity-70 transition duration-300 group-hover:opacity-100" />
-                  }
+                <p
+                  className={`pt-2 text-sm lg:text-base ${
+                    !showBio ? 'line-clamp-6' : ''
+                  }`}
                 >
-                  <p className="pt-2 text-sm lg:text-base">{data.biography}</p>
-                </TruncateMarkup>
+                  {data.biography}
+                </p>
+                {!showBio && (
+                  <Ellipsis className="relative -top-0.5 ml-2 inline-block opacity-70 transition duration-300 group-hover:opacity-100" />
+                )}
               </div>
             </div>
           )}

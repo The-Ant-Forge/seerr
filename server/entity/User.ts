@@ -11,9 +11,8 @@ import logger from '@server/logger';
 import { DbAwareColumn } from '@server/utils/DbColumnHelper';
 import { AfterDate } from '@server/utils/dateHelpers';
 import bcrypt from 'bcrypt';
-import { randomUUID } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import path from 'path';
-import { default as generatePassword } from 'secure-random-password';
 import {
   AfterLoad,
   Column,
@@ -196,7 +195,7 @@ export class User {
   }
 
   public async generatePassword(): Promise<void> {
-    const password = generatePassword.randomPassword({ length: 16 });
+    const password = randomBytes(12).toString('base64url').slice(0, 16);
     this.setPassword(password);
 
     const { applicationTitle, applicationUrl } = getSettings().main;

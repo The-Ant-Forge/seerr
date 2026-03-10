@@ -8,7 +8,7 @@ import { getAppVersion } from '@server/utils/appVersion';
 import { getHostname } from '@server/utils/getHostname';
 import axios from 'axios';
 import { Router } from 'express';
-import gravatarUrl from 'gravatar-url';
+import { gravatarUrl } from '@server/utils/gravatar';
 import { createHash } from 'node:crypto';
 
 const router = Router();

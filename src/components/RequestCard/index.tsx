@@ -25,7 +25,7 @@ import type { TvDetails } from '@server/models/Tv';
 import axios from 'axios';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useInView } from 'react-intersection-observer';
+import { useInView } from '@app/hooks/useInView';
 import { useIntl } from 'react-intl';
 import { useToasts } from 'react-toast-notifications';
 import useSWR, { mutate } from 'swr';

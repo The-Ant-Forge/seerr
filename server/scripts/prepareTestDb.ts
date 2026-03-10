@@ -2,7 +2,7 @@ import { UserType } from '@server/constants/user';
 import dataSource, { getRepository } from '@server/datasource';
 import { User } from '@server/entity/User';
 import { copyFileSync } from 'fs';
-import gravatarUrl from 'gravatar-url';
+import { gravatarUrl } from '@server/utils/gravatar';
 import path from 'path';
 
 const prepareDb = async () => {

@@ -37,7 +37,7 @@ import fs from 'fs';
 import { escapeRegExp, merge, omit, set, sortBy } from 'lodash';
 import { rescheduleJob } from 'node-schedule';
 import path from 'path';
-import semver from 'semver';
+import { semverGte } from '@server/utils/semverCompare';
 import { URL } from 'url';
 import metadataRoutes from './metadata';
 import notificationRoutes from './notifications';
@@ -449,7 +449,7 @@ settingsRoutes.post('/tautulli', async (req, res, next) => {
 
       const result = await tautulliClient.getInfo();
 
-      if (!semver.gte(semver.coerce(result?.tautulli_version) ?? '', '2.9.0')) {
+      if (!semverGte(result?.tautulli_version ?? '', '2.9.0')) {
         throw new Error('Tautulli version not supported');
       }
 

@@ -25,7 +25,6 @@ import type {
   LogMessage,
   LogsResultsResponse,
 } from '@server/interfaces/api/settingsInterfaces';
-import copy from 'copy-to-clipboard';
 import { useRouter } from 'next/router';
 import { Fragment, useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
@@ -114,14 +113,14 @@ const SettingsLogs = () => {
   }, [currentFilter, currentPageSize]);
 
   const copyLogString = (log: LogMessage): void => {
-    copy(
-      `${log.timestamp} [${log.level}]${log.label ? `[${log.label}]` : ''}: ${
-        log.message
-      }${log.data ? `${JSON.stringify(log.data)}` : ''}`
-    );
-    addToast(intl.formatMessage(messages.copiedLogMessage), {
-      appearance: 'success',
-      autoDismiss: true,
+    const text = `${log.timestamp} [${log.level}]${log.label ? `[${log.label}]` : ''}: ${
+      log.message
+    }${log.data ? `${JSON.stringify(log.data)}` : ''}`;
+    navigator.clipboard.writeText(text).then(() => {
+      addToast(intl.formatMessage(messages.copiedLogMessage), {
+        appearance: 'success',
+        autoDismiss: true,
+      });
     });
   };
 

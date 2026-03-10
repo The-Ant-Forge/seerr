@@ -1,9 +1,8 @@
 import Tooltip from '@app/components/Common/Tooltip';
 import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
-import React, { useEffect } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import type { Config } from 'react-popper-tooltip';
 import { useToasts } from 'react-toast-notifications';
-import useClipboard from 'react-use-clipboard';
 
 type CopyButtonProps = {
   textToCopy: string;
@@ -21,26 +20,30 @@ const CopyButton = ({
   tooltipContent,
   tooltipConfig,
 }: CopyButtonProps) => {
-  const [isCopied, setCopied] = useClipboard(textToCopy, {
-    successDuration: 1000,
-  });
   const { addToast } = useToasts();
+  const [isCopied, setIsCopied] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
-  useEffect(() => {
-    if (isCopied && toastMessage) {
-      addToast(toastMessage, {
-        appearance: 'info',
-        autoDismiss: true,
-      });
-    }
-  }, [isCopied, addToast, toastMessage]);
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      setIsCopied(true);
+      if (toastMessage) {
+        addToast(toastMessage, {
+          appearance: 'info',
+          autoDismiss: true,
+        });
+      }
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setIsCopied(false), 1000);
+    });
+  }, [textToCopy, toastMessage, addToast]);
 
   return (
     <Tooltip content={tooltipContent} tooltipConfig={tooltipConfig}>
       <button
         onClick={(e) => {
           e.preventDefault();
-          setCopied();
+          if (!isCopied) handleCopy();
         }}
         className="input-action"
         type="button"

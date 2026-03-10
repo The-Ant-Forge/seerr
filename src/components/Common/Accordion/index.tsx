@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import AnimateHeight from 'react-animate-height';
 
 export interface AccordionProps {
   children: (args: AccordionChildProps) => JSX.Element;
@@ -24,7 +23,17 @@ export const AccordionContent = ({
   isOpen,
   children,
 }: AccordionContentProps) => {
-  return <AnimateHeight height={isOpen ? 'auto' : 0}>{children}</AnimateHeight>;
+  return (
+    <div
+      className="transition-[grid-template-rows] duration-300 ease-in-out"
+      style={{
+        display: 'grid',
+        gridTemplateRows: isOpen ? '1fr' : '0fr',
+      }}
+    >
+      <div style={{ overflow: 'hidden' }}>{children}</div>
+    </div>
+  );
 };
 
 const Accordion = ({

@@ -25,7 +25,7 @@ import { getHostname } from '@server/utils/getHostname';
 import { normalizeJellyfinGuid } from '@server/utils/jellyfin';
 import { isOwnProfileOrAdmin } from '@server/utils/profileMiddleware';
 import { Router } from 'express';
-import gravatarUrl from 'gravatar-url';
+import { gravatarUrl } from '@server/utils/gravatar';
 import { findIndex, sortBy } from 'lodash';
 import type { EntityManager } from 'typeorm';
 import { In, Not } from 'typeorm';

@@ -2,7 +2,7 @@ import TitleCard from '@app/components/TitleCard';
 import { Permission, useUser } from '@app/hooks/useUser';
 import type { MovieDetails } from '@server/models/Movie';
 import type { TvDetails } from '@server/models/Tv';
-import { useInView } from 'react-intersection-observer';
+import { useInView } from '@app/hooks/useInView';
 import useSWR from 'swr';
 
 export interface TmdbTitleCardProps {
