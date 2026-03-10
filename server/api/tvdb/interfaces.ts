@@ -185,6 +185,7 @@ const TMDB_TO_TVDB_MAPPING: Record<string, string> & {
   sv: 'swe', // Swedish
   tr: 'tur', // Turkish
   uk: 'ukr', // Ukrainian
+  vi: 'vie', // Vietnamese
 
   'es-MX': 'spa', // Spanish (Latin America) -> Spanish
   'nb-NO': 'nor', // Norwegian Bokmål -> Norwegian

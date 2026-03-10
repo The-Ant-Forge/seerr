@@ -32,4 +32,5 @@ export type AvailableLocale =
   | 'tr'
   | 'uk'
   | 'zh-CN'
-  | 'zh-TW';
+  | 'zh-TW'
+  | 'vi';
