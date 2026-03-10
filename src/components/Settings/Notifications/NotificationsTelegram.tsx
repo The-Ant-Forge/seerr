@@ -53,18 +53,20 @@ const NotificationsTelegram = () => {
   const NotificationsTelegramSchema = Yup.object().shape({
     botAPI: Yup.string().when('enabled', {
       is: true,
-      then: Yup.string()
-        .nullable()
-        .required(intl.formatMessage(messages.validationBotAPIRequired)),
-      otherwise: Yup.string().nullable(),
+      then: (schema) =>
+        schema
+          .nullable()
+          .required(intl.formatMessage(messages.validationBotAPIRequired)),
+      otherwise: (schema) => schema.nullable(),
     }),
     chatId: Yup.string()
       .when(['enabled', 'types'], {
         is: (enabled: boolean, types: number) => enabled && !!types,
-        then: Yup.string()
-          .nullable()
-          .required(intl.formatMessage(messages.validationChatIdRequired)),
-        otherwise: Yup.string().nullable(),
+        then: (schema) =>
+          schema
+            .nullable()
+            .required(intl.formatMessage(messages.validationChatIdRequired)),
+        otherwise: (schema) => schema.nullable(),
       })
       .matches(
         /^-?\d+$/,
@@ -73,10 +75,11 @@ const NotificationsTelegram = () => {
     messageThreadId: Yup.string()
       .when(['types'], {
         is: (enabled: boolean, types: number) => enabled && !!types,
-        then: Yup.string()
-          .nullable()
-          .required(intl.formatMessage(messages.validationMessageThreadId)),
-        otherwise: Yup.string().nullable(),
+        then: (schema) =>
+          schema
+            .nullable()
+            .required(intl.formatMessage(messages.validationMessageThreadId)),
+        otherwise: (schema) => schema.nullable(),
       })
       .matches(/^\d+$/, intl.formatMessage(messages.validationMessageThreadId)),
   });

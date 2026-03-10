@@ -60,9 +60,7 @@ const SettingsUsers = () => {
     .test({
       name: 'atLeastOneAuth',
       test: function (values) {
-        const isValid = ['localLogin', 'mediaServerLogin'].some(
-          (field) => !!values[field]
-        );
+        const isValid = !!values?.localLogin || !!values?.mediaServerLogin;
 
         if (isValid) return true;
         return this.createError({

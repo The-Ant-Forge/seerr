@@ -50,10 +50,11 @@ const UserTelegramSettings = () => {
     telegramChatId: Yup.string()
       .when('types', {
         is: (types: number) => !!types,
-        then: Yup.string()
-          .nullable()
-          .required(intl.formatMessage(messages.validationTelegramChatId)),
-        otherwise: Yup.string().nullable(),
+        then: (schema) =>
+          schema
+            .nullable()
+            .required(intl.formatMessage(messages.validationTelegramChatId)),
+        otherwise: (schema) => schema.nullable(),
       })
       .matches(
         /^-?\d+$/,
@@ -62,12 +63,13 @@ const UserTelegramSettings = () => {
     telegramMessageThreadId: Yup.string()
       .when(['types'], {
         is: (enabled: boolean, types: number) => enabled && !!types,
-        then: Yup.string()
-          .nullable()
-          .required(
-            intl.formatMessage(messages.validationTelegramMessageThreadId)
-          ),
-        otherwise: Yup.string().nullable(),
+        then: (schema) =>
+          schema
+            .nullable()
+            .required(
+              intl.formatMessage(messages.validationTelegramMessageThreadId)
+            ),
+        otherwise: (schema) => schema.nullable(),
       })
       .matches(
         /^\d+$/,
