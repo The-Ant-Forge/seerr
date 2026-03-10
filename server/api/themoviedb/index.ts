@@ -286,7 +286,7 @@ class TheMovieDb extends ExternalAPI implements TvShowProvider {
             language,
             append_to_response:
               'credits,external_ids,videos,keywords,release_dates,watch/providers',
-            include_video_language: language + ', en',
+            include_video_language: language,
           },
         },
         43200
@@ -313,7 +313,7 @@ class TheMovieDb extends ExternalAPI implements TvShowProvider {
             language,
             append_to_response:
               'aggregate_credits,credits,external_ids,keywords,videos,content_ratings,watch/providers',
-            include_video_language: language + ', en',
+            include_video_language: language,
           },
         },
         43200
