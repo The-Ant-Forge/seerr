@@ -31,6 +31,10 @@ cp "$SRC/next.config.js"     "$DEST/"
 cp "$SRC/postcss.config.js"  "$DEST/"
 cp "$SRC/tailwind.config.js" "$DEST/"
 
+# System tray manager
+cp "$SRC/Seerr-Tray.ps1"    "$DEST/"
+cp "$SRC/Seerr-Tray.vbs"    "$DEST/"
+
 # Install production dependencies (preserves pnpm symlink structure)
 echo "==> Installing production dependencies..."
 cd "$DEST"
