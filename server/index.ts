@@ -29,19 +29,20 @@ import createCustomProxyAgent from '@server/utils/customProxyAgent';
 import { initializeDnsCache } from '@server/utils/dnsCache';
 import restartFlag from '@server/utils/restartFlag';
 import axios from 'axios';
-import { TypeormStore } from 'connect-typeorm/out';
+import { TypeormStore } from 'connect-typeorm';
 import cookieParser from 'cookie-parser';
 import type { NextFunction, Request, Response } from 'express';
 import express from 'express';
 import * as OpenApiValidator from 'express-openapi-validator';
 import type { Store } from 'express-session';
 import session from 'express-session';
+import { readFileSync } from 'fs';
 import http from 'http';
 import https from 'https';
 import next from 'next';
 import path from 'path';
 import swaggerUi from 'swagger-ui-express';
-import YAML from 'yamljs';
+import { parse as parseYaml } from 'yaml';
 
 const API_SPEC_PATH = path.join(__dirname, '../seerr-api.yml');
 
@@ -201,7 +202,7 @@ app
         }).connect(sessionRespository) as Store,
       })
     );
-    const apiDocs = YAML.load(API_SPEC_PATH);
+    const apiDocs = parseYaml(readFileSync(API_SPEC_PATH, 'utf8'));
     server.use('/api-docs', swaggerUi.serve, swaggerUi.setup(apiDocs));
     server.use(
       OpenApiValidator.middleware({

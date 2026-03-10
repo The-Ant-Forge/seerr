@@ -132,6 +132,7 @@ const RegionSelector = ({
             </span>
 
             <Transition
+              as="div"
               show={open}
               leave="transition-opacity ease-in duration-100"
               leaveFrom="opacity-100"

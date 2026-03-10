@@ -586,6 +586,7 @@ const AdvancedRequester = ({
                     </span>
 
                     <Transition
+                      as="div"
                       show={open}
                       enter="transition-opacity ease-in duration-300"
                       enterFrom="opacity-0"

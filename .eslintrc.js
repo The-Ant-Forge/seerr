@@ -9,7 +9,7 @@ module.exports = {
     'prettier',
   ],
   parserOptions: {
-    ecmaVersion: 6,
+    ecmaVersion: 2021,
     sourceType: 'module',
     ecmaFeatures: {
       jsx: true,
@@ -17,7 +17,9 @@ module.exports = {
   },
   rules: {
     '@typescript-eslint/no-explicit-any': 'warn', // disable the rule for now to replicate previous behavior
-    '@typescript-eslint/camelcase': 0,
+    '@typescript-eslint/naming-convention': 'off',
+    '@typescript-eslint/no-require-imports': 'off',
+    '@typescript-eslint/no-unused-expressions': 'off',
     '@typescript-eslint/no-use-before-define': 0,
     'jsx-a11y/no-noninteractive-tabindex': 0,
     'arrow-parens': 'off',
@@ -28,7 +30,7 @@ module.exports = {
     '@typescript-eslint/explicit-function-return-type': 'off',
     'formatjs/no-offset': 'error',
     'no-unused-vars': 'off',
-    '@typescript-eslint/no-unused-vars': ['error'],
+    '@typescript-eslint/no-unused-vars': ['error', { caughtErrors: 'none' }],
     '@typescript-eslint/array-type': ['error', { default: 'array' }],
     'jsx-a11y/no-onchange': 'off',
     '@typescript-eslint/consistent-type-imports': [
@@ -56,7 +58,7 @@ module.exports = {
   settings: {
     react: {
       pragma: 'React',
-      version: '16.8',
+      version: '18',
     },
   },
   env: {
