@@ -83,6 +83,14 @@ cd D:/Apps/Seerr
 NODE_ENV=production node dist/index.js   # or: pnpm start
 ```
 
+### System Tray Manager
+`D:\Apps\Seerr\Seerr-Tray.vbs` — double-click to launch a tray icon (like Radarr/Sonarr).
+- Auto-starts the server on launch
+- Right-click: Start / Stop / Open Seerr / Exit
+- Double-click tray icon: Open in browser
+- No console window (VBS wrapper hides PowerShell)
+- Add to `shell:startup` for auto-start on login
+
 ## Database
 - **ORM**: TypeORM 0.3
 - **SQLite**: `config/db/db.sqlite3` (WAL mode enabled)
