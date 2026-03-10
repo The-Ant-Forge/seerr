@@ -393,57 +393,65 @@ Also move to devDependencies (currently in dependencies):
 
 ## 6. Recommendations Summary
 
-### Phase 1a: Dead Package Removal (manifest-only, no code changes)
+### Phase 1a: Dead Package Removal (manifest-only, no code changes) — ✅ DONE (commit `19e4c818`)
 
-| # | Action | Effort |
-|---|---|---|
-| 1 | Remove `@formatjs/intl-utils` (deprecated, unused) | Trivial |
-| 2 | Remove `@types/yup` — **only after `pnpm typecheck` confirms safe** (yup 0.32 may still need it) | Low |
-| 3 | Remove `@types/mime` (deprecated, mime ships own types) | Trivial |
-| 4 | Move `@types/ua-parser-js` + `@types/wink-jaro-distance` to devDeps | Trivial |
-
-### Phase 1b: Inline Replacements (code changes, 1-2 files each)
-
-| # | Action | Files | Effort |
+| # | Action | Effort | Status |
 |---|---|---|---|
-| 5 | Inline `copy-to-clipboard` → `navigator.clipboard` | 1 | Trivial |
-| 6 | Inline `react-use-clipboard` → custom hook | 1 | Trivial |
-| 7 | Inline `gravatar-url` → URL template + crypto.createHash | 3 | Low |
-| 8 | Inline `secure-random-password` → `crypto.randomBytes()` | 1 | Trivial |
-| 9 | Inline `@supercharge/request-ip` → Express `req.ip` (must respect trust proxy) | 1 | Low |
-| 10 | Inline `semver` → custom coerce + compare (handle prefixed/partial versions) | 1 | Low |
-| 12 | Inline `bowser` → UA string regex | 1 | Trivial |
-| 13 | Inline `date-fns` → native Date methods | 2 | Low |
-| 14 | Inline `react-animate-height` → CSS grid transition | 1 | Low |
-| 15 | Inline `react-truncate-markup` → CSS line-clamp | 1 | Trivial |
-| 16 | Replace `react-popper-tooltip` → `@floating-ui/react` (20+ consumers) | 2 | Medium |
-| 17 | Inline `@tanem/react-nprogress` → custom component | 1 | Low |
-| 18 | Inline `react-intersection-observer` → native IO hook | 6 | Low |
+| 1 | Remove `@formatjs/intl-utils` (deprecated, unused) | Trivial | ✅ |
+| 2 | Remove `@types/yup` — typecheck confirmed safe | Low | ✅ |
+| 3 | ~~Remove `@types/mime`~~ — **kept**: `mime/lite` subpath needs it | Trivial | ⚠️ Kept |
+| 4 | Move `@types/ua-parser-js` + `@types/wink-jaro-distance` to devDeps | Trivial | ✅ |
 
-### Phase 1c: Safe Version Bumps — Runtime
+### Phase 1b: Inline Replacements (code changes, 1-2 files each) — ✅ DONE (commit `74b92259`)
 
-| # | Action | Effort |
-|---|---|---|
-| 19 | Apply all runtime patch/minor updates from §1a | Low |
+| # | Action | Files | Effort | Status |
+|---|---|---|---|---|
+| 5 | Inline `copy-to-clipboard` → `navigator.clipboard` | 1 | Trivial | ✅ |
+| 6 | Inline `react-use-clipboard` → custom hook | 1 | Trivial | ✅ |
+| 7 | Inline `gravatar-url` → URL template + crypto.createHash | 3 | Low | ✅ |
+| 8 | Inline `secure-random-password` → `crypto.randomBytes()` | 1 | Trivial | ✅ |
+| 9 | Inline `@supercharge/request-ip` → Express `req.ip` (trust proxy) | 1 | Low | ✅ |
+| 10 | Inline `semver` → custom coerce + compare | 1 | Low | ✅ |
+| 12 | Inline `bowser` → UA string regex | 1 | Trivial | ✅ |
+| 13 | Inline `date-fns` → native Date methods | 2 | Low | ✅ |
+| 14 | Inline `react-animate-height` → CSS grid transition | 1 | Low | ✅ |
+| 15 | Inline `react-truncate-markup` → CSS line-clamp | 1 | Trivial | ✅ |
+| 16 | Replace `react-popper-tooltip` → `@floating-ui/react` | 2 | Medium | ⏳ Deferred to Phase 2 |
+| 17 | Inline `@tanem/react-nprogress` → custom component | 1 | Low | ✅ |
+| 18 | Inline `react-intersection-observer` → native IO hook | 6 | Low | ✅ |
 
-### Phase 1d: Safe Version Bumps — Tooling
+### Phase 1c: Safe Version Bumps — Runtime — ✅ DONE (commit `ee74506a`)
 
-| # | Action | Effort |
-|---|---|---|
-| 20 | Apply all tooling patch/minor updates from §1b | Low |
-
-### Phase 2: Medium Effort (one session each)
-
-| # | Action | Effort | Notes |
+| # | Action | Effort | Status |
 |---|---|---|---|
-| 21 | Replace `yamljs` → `yaml` package or convert spec to JSON | Low | 1 file |
-| 22 | Upgrade `cronstrue` 2→3 | Low | 1 file; check API |
-| 23 | Upgrade `express-rate-limit` 6→8 | Low | Config format changes |
-| 24 | Upgrade `swagger-ui-express` 4→5 | Low | Route setup changes |
-| 25 | Upgrade `connect-typeorm` 1→2 | Low | Session store API |
-| 26 | Upgrade `@headlessui/react` 1→2 | Medium | Component API changes |
-| 27 | Upgrade Git hooks cluster (`husky` 8→9, `lint-staged` 13→16, `@commitlint` 17→20) | Low | Config changes |
-| 28 | Upgrade `typescript` 5.4→5.9 + `@typescript-eslint/*` 7→8 together | Low | TS and eslint-parser must be compatible |
+| 19 | Apply all runtime patch/minor updates from §1a | Low | ✅ |
+
+Bumped: @dr.pogodin/csurf, ace-builds, axios, country-flag-icons, dns-caching,
+express-session, pg, react-aria, swr, undici, validator, winston-daily-rotate-file
+
+### Phase 1d: Safe Version Bumps — Tooling — ✅ DONE (commit `0b26ebc9`)
+
+| # | Action | Effort | Status |
+|---|---|---|---|
+| 20 | Apply all tooling patch/minor updates from §1b | Low | ✅ |
+
+Bumped: @tailwindcss/forms, @tailwindcss/typography, @types/lodash, @types/nodemailer,
+@types/secure-random-password, @types/yamljs, autoprefixer, baseline-browser-mapping,
+nodemon, postcss, prettier-plugin-tailwindcss
+
+### Phase 2: Medium Effort (one session each) — 🔄 IN PROGRESS
+
+| # | Action | Effort | Notes | Status |
+|---|---|---|---|---|
+| 16 | Replace `react-popper-tooltip` → `@floating-ui/react` | Medium | 20+ consumers via Tooltip wrapper | |
+| 21 | Replace `yamljs` → `yaml` package or convert spec to JSON | Low | 1 file | |
+| 22 | Upgrade `cronstrue` 2→3 | Low | 1 file; check API | |
+| 23 | Upgrade `express-rate-limit` 6→8 | Low | Config format changes | |
+| 24 | Upgrade `swagger-ui-express` 4→5 | Low | Route setup changes | |
+| 25 | Upgrade `connect-typeorm` 1→2 | Low | Session store API | |
+| 26 | Upgrade `@headlessui/react` 1→2 | Medium | Component API changes | |
+| 27 | Upgrade Git hooks cluster (`husky` 8→9, `lint-staged` 13→16, `@commitlint` 17→20) | Low | Config changes | |
+| 28 | Upgrade `typescript` 5.4→5.9 + `@typescript-eslint/*` 7→8 together | Low | TS and eslint-parser must be compatible | |
 
 ### Phase 3: Deferred Major Upgrades
 
