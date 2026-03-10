@@ -436,22 +436,22 @@ express-session, pg, react-aria, swr, undici, validator, winston-daily-rotate-fi
 | 20 | Apply all tooling patch/minor updates from §1b | Low | ✅ |
 
 Bumped: @tailwindcss/forms, @tailwindcss/typography, @types/lodash, @types/nodemailer,
-@types/secure-random-password, @types/yamljs, autoprefixer, baseline-browser-mapping,
-nodemon, postcss, prettier-plugin-tailwindcss
+@types/secure-random-password, ~~@types/yamljs~~ (removed in Phase 2), autoprefixer,
+baseline-browser-mapping, nodemon, postcss, prettier-plugin-tailwindcss
 
-### Phase 2: Medium Effort (one session each) — 🔄 IN PROGRESS
+### Phase 2: Medium Effort (one session each) — ✅ DONE (commit `b1b1b2b8`)
 
 | # | Action | Effort | Notes | Status |
 |---|---|---|---|---|
-| 16 | Replace `react-popper-tooltip` → `@floating-ui/react` | Medium | 20+ consumers via Tooltip wrapper | |
-| 21 | Replace `yamljs` → `yaml` package or convert spec to JSON | Low | 1 file | |
-| 22 | Upgrade `cronstrue` 2→3 | Low | 1 file; check API | |
-| 23 | Upgrade `express-rate-limit` 6→8 | Low | Config format changes | |
-| 24 | Upgrade `swagger-ui-express` 4→5 | Low | Route setup changes | |
-| 25 | Upgrade `connect-typeorm` 1→2 | Low | Session store API | |
-| 26 | Upgrade `@headlessui/react` 1→2 | Medium | Component API changes | |
-| 27 | Upgrade Git hooks cluster (`husky` 8→9, `lint-staged` 13→16, `@commitlint` 17→20) | Low | Config changes | |
-| 28 | Upgrade `typescript` 5.4→5.9 + `@typescript-eslint/*` 7→8 together | Low | TS and eslint-parser must be compatible | |
+| 16 | Replace `react-popper-tooltip` → `@floating-ui/react` | Medium | Rewrote Tooltip wrapper; 22 consumers unchanged | ✅ |
+| 21 | Replace `yamljs` → `yaml` package | Low | 1 file; use `parse()` + `readFileSync` | ✅ |
+| 22 | Upgrade `cronstrue` 2→3 | Low | API compatible | ✅ |
+| 23 | Upgrade `express-rate-limit` 6→8 | Low | `max` still supported | ✅ |
+| 24 | Upgrade `swagger-ui-express` 4→5 | Low | API compatible | ✅ |
+| 25 | Upgrade `connect-typeorm` 1→2 | Low | Updated import path; ISession still exported | ✅ |
+| 26 | Upgrade `@headlessui/react` 1→2 | Medium | Added `as="div"` to Transition with className/style | ✅ |
+| 27 | Upgrade Git hooks cluster (`husky` 8→9, `lint-staged` 13→16, `@commitlint` 17→20) | Low | Removed husky.sh sourcing; added TTY guard | ✅ |
+| 28 | Upgrade `typescript` 5.4→5.9 + `@typescript-eslint/*` 7→8 | Low | Fixed ban-types → no-unsafe-function-type; disabled new strict rules | ✅ |
 
 ### Phase 3: Deferred Major Upgrades
 
