@@ -208,7 +208,8 @@ const TvDetails = ({ tv }: TvDetailsProps) => {
 
   const trailerVideo = data.relatedVideos
     ?.filter((r) => r.type === 'Trailer')
-    .sort((a, b) => b.size - a.size)[0];
+    .sort((a, b) => a.size - b.size)
+    .pop();
   const trailerUrl =
     trailerVideo?.site === 'YouTube' &&
     settings.currentSettings.youtubeUrl != ''
