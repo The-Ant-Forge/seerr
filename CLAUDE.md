@@ -62,6 +62,27 @@ pnpm build:server          # TypeScript server only
 
 Port is configurable via `$PORT` env var (default 5055).
 
+## Deploy (Local)
+**Destination:** `D:\Apps\Seerr`
+
+```bash
+# One-step build + deploy
+bash deploy.sh                 # uses default dest D:/Apps/Seerr
+bash deploy.sh /path/to/dest   # custom destination
+
+# Or manually:
+pnpm build
+# Copy: dist/, .next/, node_modules/, public/, package.json,
+#        pnpm-lock.yaml, seerr-api.yml, next.config.js,
+#        postcss.config.js, tailwind.config.js
+```
+
+Start the deployed instance:
+```bash
+cd D:/Apps/Seerr
+NODE_ENV=production node dist/index.js   # or: pnpm start
+```
+
 ## Database
 - **ORM**: TypeORM 0.3
 - **SQLite**: `config/db/db.sqlite3` (WAL mode enabled)
