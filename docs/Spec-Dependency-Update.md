@@ -453,18 +453,23 @@ baseline-browser-mapping, nodemon, postcss, prettier-plugin-tailwindcss
 | 27 | Upgrade Git hooks cluster (`husky` 8→9, `lint-staged` 13→16, `@commitlint` 17→20) | Low | Removed husky.sh sourcing; added TTY guard | ✅ |
 | 28 | Upgrade `typescript` 5.4→5.9 + `@typescript-eslint/*` 7→8 | Low | Fixed ban-types → no-unsafe-function-type; disabled new strict rules | ✅ |
 
-### Phase 3: Deferred Major Upgrades
+### Phase 3: Major Upgrades
 
-These require dedicated migration sprints. Each should have its own spec in `docs/`.
+| # | Action | Effort | Notes | Status |
+|---|---|---|---|---|
+| 29 | `yup` 0.32→1.7 | High | 34 `.when()` transformations across 16 files; removed `null` from `.oneOf()`; fixed dynamic field indexing | ✅ DONE (commit `5ba70854`) |
+| 30 | `express` 4→5 + `@types/express` 4→5 | Medium | Only 1 type assertion needed for csurf middleware; fixed `Number() ?? 1` → `|| 1` bugs | ✅ DONE (commit `ea045f91`) |
+| 34 | `eslint` 8→9 + flat config migration + `@typescript-eslint/*` 7→8 + plugin updates | Medium | Created `eslint.config.js` with FlatCompat; found/fixed 2 real bugs via new rules; updated lint-staged config | ✅ DONE (commit `9d7845aa`) |
+
+#### Remaining Phase 3 — Deferred
+
+These still require dedicated migration sprints:
 
 | # | Action | Trigger / Timing | Cluster |
 |---|---|---|---|
-| 29 | `yup` 0.32→1.7 | Dedicated sprint; 35 files; schema API changes | — |
-| 30 | `express` 4→5 | Dedicated sprint; middleware + routing changes | Express |
 | 31 | `react` 18→19 + `react-dom` + `@types/react` + `@types/react-dom` | After express stabilised | React |
 | 32 | `next` 14→15+ + `eslint-config-next` | After React 19; App Router migration | Next.js |
 | 33 | `tailwindcss` 3→4 | Dedicated sprint; config migration | Tailwind |
-| 34 | `eslint` 8→10 + all eslint plugins | Flat config migration | Linting |
 | 35 | `react-intl` 6→8 + `@formatjs/*` | After React 19 | @formatjs |
 | 36 | `react-spring` 9→10 | After React 19 | — |
 | 37 | `sharp` 0.33→0.34 | Test native bindings on target platforms | — |
@@ -492,16 +497,19 @@ If all Phase 1 + Phase 2 items are completed:
 ## 8. Execution Order
 
 ```
-Phase 1a (Items 1-4)     →  pnpm install  →  pnpm build (verify)
-Phase 1b (Items 5-18)    →  pnpm build  →  pnpm lint  →  verify
-Phase 1c (Item 19)       →  pnpm build  →  verify
-Phase 1d (Item 20)       →  pnpm build + pnpm lint  →  verify
-Phase 2  (Items 21-28)   →  pnpm build  →  full test
-Phase 3  (Items 29-38)   →  individual migration sprints with their own specs
+Phase 1a (Items 1-4)     →  ✅ commit 19e4c818
+Phase 1b (Items 5-18)    →  ✅ commit 74b92259
+Phase 1c (Item 19)       →  ✅ commit ee74506a
+Phase 1d (Item 20)       →  ✅ commit 0b26ebc9
+Phase 2  (Items 21-28)   →  ✅ commit b1b1b2b8
+Phase 3a (Item 34)       →  ✅ commit 9d7845aa  (ESLint 8→9 flat config)
+Phase 3b (Item 30)       →  ✅ commit ea045f91  (Express 4→5)
+Phase 3c (Item 29)       →  ✅ commit 5ba70854  (yup 0.32→1.7)
+Phase 3d (Items 31-33, 35-38) →  ⏳ Deferred (React 19, Next.js 15+, Tailwind 4, etc.)
 ```
 
-Each sub-phase should be committed separately so regressions are attributable.
-Phase 3 items each warrant their own specification document in `docs/`.
+Each sub-phase was committed separately so regressions are attributable.
+Remaining Phase 3 items each warrant their own specification document in `docs/`.
 
 ---
 
@@ -534,16 +542,16 @@ in this specification. They are listed here for completeness.
 | `axios-rate-limit` | 1.4.0 | Rate limiting for API calls; working |
 | `copy-to-clipboard` | 3.3.3 | Targeted for removal in Phase 1b |
 | `node-gyp` | 12.2.0 | Build tool; also pinned in pnpm.overrides for sqlite3 |
-| `eslint-config-next` | 14.2.35 | Update with Next.js cluster |
-| `eslint-config-prettier` | 8.6.0 | Update with Linting cluster |
-| `eslint-plugin-jsx-a11y` | 6.10.2 | Update with Linting cluster |
-| `eslint-plugin-prettier` | 4.2.1 | Update with Linting cluster |
-| `eslint-plugin-react-hooks` | 4.6.0 | Update with Linting cluster |
-| `eslint-plugin-formatjs` | 4.9.0 | Update with Linting cluster |
+| `eslint-config-next` | 15.5.12 | Updated in Phase 3a; further update with Next.js cluster |
+| `eslint-config-prettier` | 10.1.8 | Updated in Phase 3a |
+| `eslint-plugin-jsx-a11y` | 6.10.2 | Updated in Phase 3a |
+| `eslint-plugin-prettier` | 4.2.1 | Superseded by eslint-config-prettier in flat config |
+| `eslint-plugin-react-hooks` | 5.2.0 | Updated in Phase 3a |
+| `eslint-plugin-formatjs` | 6.3.0 | Updated in Phase 3a |
 | `@tailwindcss/aspect-ratio` | 0.4.2 | Update with Tailwind cluster |
 | `@heroicons/react` | 2.2.0 | Icon library; already latest |
 | `@types/node` | 22.10.5 | Update alongside Node.js major version changes |
 | `@types/react` | 18.3.3 | Update with React cluster |
 | `@types/react-dom` | 18.3.0 | Update with React cluster |
-| `@types/express` | 4.17.17 | Update with Express cluster |
+| `@types/express` | 5.0.6 | Updated in Phase 3b |
 | `validator` | 13.15.23 | Kept — security-sensitive email validation; patch-bump only |
