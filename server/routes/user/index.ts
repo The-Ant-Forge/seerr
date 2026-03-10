@@ -22,10 +22,10 @@ import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { isAuthenticated } from '@server/middleware/auth';
 import { getHostname } from '@server/utils/getHostname';
+import { gravatarUrl } from '@server/utils/gravatar';
 import { normalizeJellyfinGuid } from '@server/utils/jellyfin';
 import { isOwnProfileOrAdmin } from '@server/utils/profileMiddleware';
 import { Router } from 'express';
-import { gravatarUrl } from '@server/utils/gravatar';
 import { findIndex, sortBy } from 'lodash';
 import type { EntityManager } from 'typeorm';
 import { In, Not } from 'typeorm';
@@ -877,7 +877,7 @@ router.get<{ id: string }, WatchlistResponse>(
     }
 
     const itemsPerPage = 20;
-    const page = Number(req.query.page) ?? 1;
+    const page = Number(req.query.page) || 1;
     const offset = (page - 1) * itemsPerPage;
 
     const user = await getRepository(User).findOneOrFail({
