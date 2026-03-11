@@ -2,6 +2,7 @@ import { IssueStatus, IssueTypeName } from '@server/constants/issue';
 import { MediaStatus } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import { User } from '@server/entity/User';
+import { getNotificationStatusLabel } from '@server/lib/notifications/notificationStatusHelper';
 import type { NotificationAgentPushbullet } from '@server/lib/settings';
 import { NotificationAgentKey, getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
@@ -52,29 +53,13 @@ class PushbulletAgent
       body += `\n\nRequested By: ${payload.request.requestedBy.displayName}`;
 
       let status = '';
-      switch (type) {
-        case Notification.MEDIA_AUTO_REQUESTED:
-          status =
-            payload.media?.status === MediaStatus.PENDING
-              ? 'Pending Approval'
-              : 'Processing';
-          break;
-        case Notification.MEDIA_PENDING:
-          status = 'Pending Approval';
-          break;
-        case Notification.MEDIA_APPROVED:
-        case Notification.MEDIA_AUTO_APPROVED:
-          status = 'Processing';
-          break;
-        case Notification.MEDIA_AVAILABLE:
-          status = 'Available';
-          break;
-        case Notification.MEDIA_DECLINED:
-          status = 'Declined';
-          break;
-        case Notification.MEDIA_FAILED:
-          status = 'Failed';
-          break;
+      if (type === Notification.MEDIA_AUTO_REQUESTED) {
+        status =
+          payload.media?.status === MediaStatus.PENDING
+            ? 'Pending Approval'
+            : 'Processing';
+      } else {
+        status = getNotificationStatusLabel(type);
       }
 
       if (status) {

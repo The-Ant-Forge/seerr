@@ -1,4 +1,5 @@
 import { IssueStatus, IssueTypeName } from '@server/constants/issue';
+import { getNotificationStatusLabel } from '@server/lib/notifications/notificationStatusHelper';
 import type { NotificationAgentNtfy } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
@@ -37,25 +38,7 @@ class NtfyAgent
     if (payload.request) {
       message += `\n\nRequested By: ${payload.request.requestedBy.displayName}`;
 
-      let status = '';
-      switch (type) {
-        case Notification.MEDIA_PENDING:
-          status = 'Pending Approval';
-          break;
-        case Notification.MEDIA_APPROVED:
-        case Notification.MEDIA_AUTO_APPROVED:
-          status = 'Processing';
-          break;
-        case Notification.MEDIA_AVAILABLE:
-          status = 'Available';
-          break;
-        case Notification.MEDIA_DECLINED:
-          status = 'Declined';
-          break;
-        case Notification.MEDIA_FAILED:
-          status = 'Failed';
-          break;
-      }
+      const status = getNotificationStatusLabel(type);
 
       if (status) {
         message += `\nRequest Status: ${status}`;

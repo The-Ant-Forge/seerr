@@ -233,45 +233,51 @@ router.get('/languages', isAuthenticated(), async (req, res, next) => {
   }
 });
 
-router.get<{ id: string }>('/studio/:id', async (req, res, next) => {
-  const tmdb = new TheMovieDb();
+router.get<{ studioId: string }>(
+  '/studio/:studioId',
+  async (req, res, next) => {
+    const tmdb = new TheMovieDb();
 
-  try {
-    const studio = await tmdb.getStudio(Number(req.params.id));
+    try {
+      const studio = await tmdb.getStudio(Number(req.params.studioId));
 
-    return res.status(200).json(mapProductionCompany(studio));
-  } catch (e) {
-    logger.debug('Something went wrong retrieving studio', {
-      label: 'API',
-      errorMessage: e.message,
-      studioId: req.params.id,
-    });
-    return next({
-      status: 500,
-      message: 'Unable to retrieve studio.',
-    });
+      return res.status(200).json(mapProductionCompany(studio));
+    } catch (e) {
+      logger.debug('Something went wrong retrieving studio', {
+        label: 'API',
+        errorMessage: e.message,
+        studioId: req.params.studioId,
+      });
+      return next({
+        status: 500,
+        message: 'Unable to retrieve studio.',
+      });
+    }
   }
-});
+);
 
-router.get<{ id: string }>('/network/:id', async (req, res, next) => {
-  const tmdb = new TheMovieDb();
+router.get<{ networkId: string }>(
+  '/network/:networkId',
+  async (req, res, next) => {
+    const tmdb = new TheMovieDb();
 
-  try {
-    const network = await tmdb.getNetwork(Number(req.params.id));
+    try {
+      const network = await tmdb.getNetwork(Number(req.params.networkId));
 
-    return res.status(200).json(mapNetwork(network));
-  } catch (e) {
-    logger.debug('Something went wrong retrieving network', {
-      label: 'API',
-      errorMessage: e.message,
-      networkId: req.params.id,
-    });
-    return next({
-      status: 500,
-      message: 'Unable to retrieve network.',
-    });
+      return res.status(200).json(mapNetwork(network));
+    } catch (e) {
+      logger.debug('Something went wrong retrieving network', {
+        label: 'API',
+        errorMessage: e.message,
+        networkId: req.params.networkId,
+      });
+      return next({
+        status: 500,
+        message: 'Unable to retrieve network.',
+      });
+    }
   }
-});
+);
 
 router.get('/genres/movie', isAuthenticated(), async (req, res, next) => {
   const tmdb = new TheMovieDb();

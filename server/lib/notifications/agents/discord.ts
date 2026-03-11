@@ -1,6 +1,7 @@
 import { IssueStatus, IssueTypeName } from '@server/constants/issue';
 import { getRepository } from '@server/datasource';
 import { User } from '@server/entity/User';
+import { getNotificationStatusLabel } from '@server/lib/notifications/notificationStatusHelper';
 import type { NotificationAgentDiscord } from '@server/lib/settings';
 import { NotificationAgentKey, getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
@@ -125,28 +126,23 @@ class DiscordAgent
         inline: true,
       });
 
-      let status = '';
+      let status = getNotificationStatusLabel(type);
+
       switch (type) {
         case Notification.MEDIA_PENDING:
           color = EmbedColors.ORANGE;
-          status = `[Pending Approval](${appUrl}/requests)`;
+          status = `[${status}](${appUrl}/requests)`;
           break;
         case Notification.MEDIA_APPROVED:
         case Notification.MEDIA_AUTO_APPROVED:
           color = EmbedColors.PURPLE;
-          status = 'Processing';
           break;
         case Notification.MEDIA_AVAILABLE:
           color = EmbedColors.GREEN;
-          status = 'Available';
           break;
         case Notification.MEDIA_DECLINED:
-          color = EmbedColors.RED;
-          status = 'Declined';
-          break;
         case Notification.MEDIA_FAILED:
           color = EmbedColors.RED;
-          status = 'Failed';
           break;
       }
 

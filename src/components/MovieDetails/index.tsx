@@ -24,12 +24,21 @@ import Slider from '@app/components/Slider';
 import StatusBadge from '@app/components/StatusBadge';
 import useDeepLinks from '@app/hooks/useDeepLinks';
 import useLocale from '@app/hooks/useLocale';
+import {
+  get4kMediaServerPlayLabel,
+  getMediaServerPlayLabel,
+} from '@app/hooks/useMediaServerName';
 import useSettings from '@app/hooks/useSettings';
 import { Permission, UserType, useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
 import ErrorPage from '@app/pages/_error';
 import { sortCrewPriority } from '@app/utils/creditHelpers';
 import defineMessages from '@app/utils/defineMessages';
+import {
+  getDiscoverRegion,
+  getStreamingRegion,
+  getTrailerUrl,
+} from '@app/utils/mediaHelpers';
 import { refreshIntervalHelper } from '@app/utils/refreshIntervalHelper';
 import {
   ArrowRightCircleIcon,
@@ -50,7 +59,6 @@ import {
 import { type RatingResponse } from '@server/api/ratings';
 import { IssueStatus } from '@server/constants/issue';
 import { MediaStatus, MediaType } from '@server/constants/media';
-import { MediaServerType } from '@server/constants/server';
 import type { MovieDetails as MovieDetailsType } from '@server/models/Movie';
 import axios from 'axios';
 import { countries } from 'country-flag-icons';
@@ -191,7 +199,11 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
     })
   ) {
     mediaLinks.push({
-      text: getAvailableMediaServerName(),
+      text: getMediaServerPlayLabel(
+        settings.currentSettings.mediaServerType,
+        intl.formatMessage,
+        messages.play
+      ),
       url: plexUrl,
       svg: <PlayIcon />,
     });
@@ -205,21 +217,21 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
     })
   ) {
     mediaLinks.push({
-      text: getAvailable4kMediaServerName(),
+      text: get4kMediaServerPlayLabel(
+        settings.currentSettings.mediaServerType,
+        intl.formatMessage,
+        messages.play,
+        messages.play4k
+      ),
       url: plexUrl4k,
       svg: <PlayIcon />,
     });
   }
 
-  const trailerVideo = data.relatedVideos
-    ?.filter((r) => r.type === 'Trailer')
-    .sort((a, b) => a.size - b.size)
-    .pop();
-  const trailerUrl =
-    trailerVideo?.site === 'YouTube' &&
-    settings.currentSettings.youtubeUrl != ''
-      ? `${settings.currentSettings.youtubeUrl}${trailerVideo?.key}`
-      : trailerVideo?.url;
+  const trailerUrl = getTrailerUrl(
+    data.relatedVideos,
+    settings.currentSettings.youtubeUrl
+  );
 
   if (trailerUrl) {
     mediaLinks.push({
@@ -229,11 +241,10 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
     });
   }
 
-  const discoverRegion = user?.settings?.discoverRegion
-    ? user.settings.discoverRegion
-    : settings.currentSettings.discoverRegion
-      ? settings.currentSettings.discoverRegion
-      : 'US';
+  const discoverRegion = getDiscoverRegion(
+    user?.settings,
+    settings.currentSettings
+  );
 
   const releases = data.releases.results.find(
     (r) => r.iso_3166_1 === discoverRegion
@@ -289,39 +300,14 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
     );
   }
 
-  const streamingRegion = user?.settings?.streamingRegion
-    ? user.settings.streamingRegion
-    : settings.currentSettings.streamingRegion
-      ? settings.currentSettings.streamingRegion
-      : 'US';
+  const streamingRegion = getStreamingRegion(
+    user?.settings,
+    settings.currentSettings
+  );
   const streamingProviders =
     data?.watchProviders?.find(
       (provider) => provider.iso_3166_1 === streamingRegion
     )?.flatrate ?? [];
-
-  function getAvailableMediaServerName() {
-    if (settings.currentSettings.mediaServerType === MediaServerType.EMBY) {
-      return intl.formatMessage(messages.play, { mediaServerName: 'Emby' });
-    }
-
-    if (settings.currentSettings.mediaServerType === MediaServerType.PLEX) {
-      return intl.formatMessage(messages.play, { mediaServerName: 'Plex' });
-    }
-
-    return intl.formatMessage(messages.play, { mediaServerName: 'Jellyfin' });
-  }
-
-  function getAvailable4kMediaServerName() {
-    if (settings.currentSettings.mediaServerType === MediaServerType.EMBY) {
-      return intl.formatMessage(messages.play, { mediaServerName: 'Emby' });
-    }
-
-    if (settings.currentSettings.mediaServerType === MediaServerType.PLEX) {
-      return intl.formatMessage(messages.play4k, { mediaServerName: 'Plex' });
-    }
-
-    return intl.formatMessage(messages.play4k, { mediaServerName: 'Jellyfin' });
-  }
 
   const onClickWatchlistBtn = async (): Promise<void> => {
     setIsUpdating(true);
