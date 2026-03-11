@@ -55,8 +55,8 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 
 | # | Finding | Location | Notes |
 |---|---------|----------|-------|
-| C.1 | Race conditions in request submission | `server/entity/MediaRequest.ts:46+` | Duplicate media requests, quota bypass under concurrent submits, double-applied approvals |
-| C.2 | Missing transaction boundaries | `MediaRequest.request()` | Sequential repository calls should be atomic |
+| C.1 | ~~Race conditions in request submission~~ | `server/entity/MediaRequest.ts:46+` | **Done** `7aa1cfae` — wrapped critical section in AsyncLock keyed by mediaType+mediaId |
+| C.2 | ~~Missing transaction boundaries~~ | `MediaRequest.request()` | **Done** `7aa1cfae` — AsyncLock serialises the check-then-save; full DB transaction is a future enhancement |
 | C.3 | Missing unique indexes / FK assumptions | `server/entity/` | Review constraints that guard against data duplication at DB level |
 | C.4 | **[Codex]** Unbounded list endpoints | `server/routes/` | Missing pagination limits, expensive sort fields without DB indexes |
 
@@ -70,7 +70,7 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 |---|---------|----------|-------|
 | 10.1 | N+1 in Plex user import | `server/routes/user/index.ts:604-643` | Per-user DB lookup + save in for-loop |
 | 10.2 | N+1 in Jellyfin user import | `server/routes/user/index.ts:690-730` | Same pattern as Plex import |
-| 10.3 | 8 sequential `getCount()` queries | `server/routes/request.ts:338-425` | Could be single aggregated SQL with `COUNT(CASE WHEN ...)` |
+| 10.3 | ~~8 sequential `getCount()` queries~~ | `server/routes/request.ts:338-425` | **Done** `f1c64a32` — single query with conditional aggregation |
 | 10.4 | Sequential availability sync | `server/lib/availabilitySync.ts` | No parallelism within a page of records |
 
 ### Category 7: Type Safety
@@ -116,7 +116,7 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 
 | # | Finding | Location | Notes |
 |---|---------|----------|-------|
-| 11.1 | `synchronize: true` in dev DB config | `server/datasource.ts:46` | Can mask missing migrations |
+| 11.1 | ~~`synchronize: true` in dev DB config~~ | `server/datasource.ts:46` | **Done** `daa7a249` — set to false, migrationsRun enabled |
 | 11.2 | File-wide `react-hooks/exhaustive-deps` suppression | `src/components/RequestModal/AdvancedRequester/index.tsx:1`, `src/hooks/useSearchInput.ts:1` | Dependency arrays manually managed |
 
 ---
@@ -136,9 +136,9 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 
 | # | Finding | Notes |
 |---|---------|-------|
-| 2.1 | `@types/csurf` for wrong package | Types are for original `csurf`, not `@dr.pogodin/csurf` |
-| 2.2 | `react-spring` — Slider only | Candidate for removal if Headless UI transitions suffice |
-| 2.3 | `ace-builds` + `react-ace` (~1MB) | Single JSON editor in settings |
+| 2.1 | ~~`@types/csurf` for wrong package~~ | **Done** `1bc18cf7` — removed package + custom.d.ts shim; bundled types used; added key/path to csurf cookie config |
+| 2.2 | ~~`react-spring` — Slider only~~ | **Done** `1bc18cf7` — replaced useSpring with native `scrollTo({ behavior: 'smooth' })` |
+| 2.3 | `ace-builds` + `react-ace` (~1MB) | Single JSON editor in settings — moderate effort swap to lighter alternative |
 
 ### Category 9: Documentation Drift
 
