@@ -601,44 +601,60 @@ router.post(
 
       const plexUsersResponse = await mainPlexTv.getUsers();
       const createdUsers: User[] = [];
-      for (const rawUser of plexUsersResponse.MediaContainer.User) {
-        const account = rawUser.$;
 
-        if (account.email) {
-          const user = await userRepository
-            .createQueryBuilder('user')
-            .where('user.plexId = :id', { id: account.id })
-            .orWhere('user.email = :email', {
-              email: account.email.toLowerCase(),
-            })
-            .getOne();
+      // Pre-fetch all existing users that match any Plex ID or email (1 query instead of N)
+      const plexAccounts = plexUsersResponse.MediaContainer.User.map(
+        (u) => u.$
+      ).filter((a) => a.email);
+      const plexIds = plexAccounts.map((a) => parseInt(a.id));
+      const emails = plexAccounts.map((a) => a.email.toLowerCase());
 
-          if (user) {
-            // Update the user's avatar with their Plex thumbnail, in case it changed
-            user.avatar = account.thumb;
-            user.email = account.email;
-            user.plexUsername = account.username;
+      const existingUsers =
+        plexIds.length > 0
+          ? await userRepository
+              .createQueryBuilder('user')
+              .where('user.plexId IN (:...plexIds)', { plexIds })
+              .orWhere('LOWER(user.email) IN (:...emails)', { emails })
+              .getMany()
+          : [];
 
-            // In case the user was previously a local account
-            if (user.userType === UserType.LOCAL) {
-              user.userType = UserType.PLEX;
-              user.plexId = parseInt(account.id);
-            }
-            await userRepository.save(user);
-          } else if (!body || body.plexIds.includes(account.id)) {
-            if (await mainPlexTv.checkUserAccess(parseInt(account.id))) {
-              const newUser = new User({
-                plexUsername: account.username,
-                email: account.email,
-                permissions: settings.main.defaultPermissions,
-                plexId: parseInt(account.id),
-                plexToken: '',
-                avatar: account.thumb,
-                userType: UserType.PLEX,
-              });
-              await userRepository.save(newUser);
-              createdUsers.push(newUser);
-            }
+      const userByPlexId = new Map(
+        existingUsers.filter((u) => u.plexId).map((u) => [u.plexId, u])
+      );
+      const userByEmail = new Map(
+        existingUsers.map((u) => [u.email.toLowerCase(), u])
+      );
+
+      for (const account of plexAccounts) {
+        const user =
+          userByPlexId.get(parseInt(account.id)) ??
+          userByEmail.get(account.email.toLowerCase());
+
+        if (user) {
+          // Update the user's avatar with their Plex thumbnail, in case it changed
+          user.avatar = account.thumb;
+          user.email = account.email;
+          user.plexUsername = account.username;
+
+          // In case the user was previously a local account
+          if (user.userType === UserType.LOCAL) {
+            user.userType = UserType.PLEX;
+            user.plexId = parseInt(account.id);
+          }
+          await userRepository.save(user);
+        } else if (!body || body.plexIds.includes(account.id)) {
+          if (await mainPlexTv.checkUserAccess(parseInt(account.id))) {
+            const newUser = new User({
+              plexUsername: account.username,
+              email: account.email,
+              permissions: settings.main.defaultPermissions,
+              plexId: parseInt(account.id),
+              plexToken: '',
+              avatar: account.thumb,
+              userType: UserType.PLEX,
+            });
+            await userRepository.save(newUser);
+            createdUsers.push(newUser);
           }
         }
       }
@@ -686,38 +702,51 @@ router.post(
         ])
       );
 
-      for (const rawJellyfinUserId of body.jellyfinUserIds) {
-        const jellyfinUserId = normalizeJellyfinGuid(rawJellyfinUserId);
-        if (!jellyfinUserId) {
+      // Normalise all requested IDs upfront
+      const requestedIds = body.jellyfinUserIds
+        .map(normalizeJellyfinGuid)
+        .filter((id): id is string => !!id);
+
+      // Pre-fetch all existing users that match any Jellyfin ID (1 query instead of N)
+      const existingJellyfinUsers =
+        requestedIds.length > 0
+          ? await userRepository
+              .createQueryBuilder('user')
+              .select(['user.id', 'user.jellyfinUserId'])
+              .where('user.jellyfinUserId IN (:...ids)', {
+                ids: requestedIds,
+              })
+              .getMany()
+          : [];
+
+      const existingJellyfinIds = new Set(
+        existingJellyfinUsers.map((u) => u.jellyfinUserId)
+      );
+
+      for (const jellyfinUserId of requestedIds) {
+        if (existingJellyfinIds.has(jellyfinUserId)) {
           continue;
         }
 
         const jellyfinUser = jellyfinUsersById.get(jellyfinUserId);
 
-        const user = await userRepository.findOne({
-          select: ['id', 'jellyfinUserId'],
-          where: { jellyfinUserId: jellyfinUserId },
+        const newUser = new User({
+          jellyfinUsername: jellyfinUser?.Name,
+          jellyfinUserId: jellyfinUser?.Id,
+          jellyfinDeviceId: Buffer.from(
+            `BOT_seerr_${jellyfinUser?.Name ?? ''}`
+          ).toString('base64'),
+          email: jellyfinUser?.Name,
+          permissions: settings.main.defaultPermissions,
+          avatar: `/avatarproxy/${jellyfinUser?.Id}`,
+          userType:
+            settings.main.mediaServerType === MediaServerType.JELLYFIN
+              ? UserType.JELLYFIN
+              : UserType.EMBY,
         });
 
-        if (!user) {
-          const newUser = new User({
-            jellyfinUsername: jellyfinUser?.Name,
-            jellyfinUserId: jellyfinUser?.Id,
-            jellyfinDeviceId: Buffer.from(
-              `BOT_seerr_${jellyfinUser?.Name ?? ''}`
-            ).toString('base64'),
-            email: jellyfinUser?.Name,
-            permissions: settings.main.defaultPermissions,
-            avatar: `/avatarproxy/${jellyfinUser?.Id}`,
-            userType:
-              settings.main.mediaServerType === MediaServerType.JELLYFIN
-                ? UserType.JELLYFIN
-                : UserType.EMBY,
-          });
-
-          await userRepository.save(newUser);
-          createdUsers.push(newUser);
-        }
+        await userRepository.save(newUser);
+        createdUsers.push(newUser);
       }
       return res.status(201).json(User.filterMany(createdUsers));
     } catch (e) {
