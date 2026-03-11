@@ -2,10 +2,9 @@ import RadarrAPI from '@server/api/servarr/radarr';
 import SonarrAPI from '@server/api/servarr/sonarr';
 import { getRepository } from '@server/datasource';
 import { User } from '@server/entity/User';
-import type { AllSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 
-const migrationArrTags = async (settings: any): Promise<AllSettings> => {
+const migrationArrTags = async (settings: any): Promise<any> => {
   if (
     Array.isArray(settings.migrations) &&
     settings.migrations.includes('0007_migrate_arr_tags')

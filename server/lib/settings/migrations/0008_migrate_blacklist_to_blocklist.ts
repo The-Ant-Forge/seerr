@@ -1,6 +1,4 @@
-import type { AllSettings } from '@server/lib/settings';
-
-const migrateBlacklistToBlocklist = (settings: any): AllSettings => {
+const migrateBlacklistToBlocklist = (settings: any): any => {
   if (
     Array.isArray(settings.migrations) &&
     settings.migrations.includes('0008_migrate_blacklist_to_blocklist')

@@ -4,7 +4,7 @@
 Media request management application integrating with Jellyfin, Plex, and Emby. Users browse/search content via a web UI, submit requests, and Seerr routes them to Sonarr/Radarr for automated downloading and library management. Supports watchlists, blocklists, issues tracking, granular permissions, and notifications across Discord, Email, Slack, Telegram, and more.
 
 ## Architecture
-- **Backend**: Node.js + Express + TypeScript (`server/`)
+- **Backend**: Node.js + Express 5 + TypeScript (`server/`)
 - **Frontend**: Next.js 14 + React 18 + Tailwind CSS (`src/`)
 - **Database**: SQLite (default) or PostgreSQL via TypeORM
 - **API**: REST v1 with OpenAPI spec (`seerr-api.yml`), validated by express-openapi-validator
@@ -26,7 +26,7 @@ Media request management application integrating with Jellyfin, Plex, and Emby. 
 | `src/hooks/` | Custom React hooks (useUser, useSettings, useLocale, etc.) |
 | `src/context/` | React Context providers |
 | `src/i18n/` | Internationalization — locale JSON files |
-| `cypress/` | End-to-end tests |
+| `tests/e2e/` | Playwright end-to-end tests |
 
 ## Code Style
 - **TypeScript**: 2-space indent, single quotes, ES5 trailing commas
@@ -133,6 +133,9 @@ Base path: `/api/v1` — full spec at `/api-docs`
 | `/user` | User management |
 | `/blocklist` | Blocklist management |
 | `/watchlist` | Watchlist management |
+| `/person` | Person (actor/crew) details |
+| `/service` | Service status and info |
+| `/overrideRule` | Override rule management |
 
 ## Working Style
 

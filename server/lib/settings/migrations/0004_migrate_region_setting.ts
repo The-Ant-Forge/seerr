@@ -1,6 +1,4 @@
-import type { AllSettings } from '@server/lib/settings';
-
-const migrateRegionSetting = (settings: any): AllSettings => {
+const migrateRegionSetting = (settings: any): any => {
   if (
     settings.main.discoverRegion !== undefined &&
     settings.main.streamingRegion !== undefined

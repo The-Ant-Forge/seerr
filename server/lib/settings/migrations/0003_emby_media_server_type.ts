@@ -1,7 +1,6 @@
 import { MediaServerType } from '@server/constants/server';
-import type { AllSettings } from '@server/lib/settings';
 
-const migrateHostname = (settings: any): AllSettings => {
+const migrateHostname = (settings: any): any => {
   const oldMediaServerType = settings.main.mediaServerType;
   if (
     oldMediaServerType === MediaServerType.JELLYFIN &&

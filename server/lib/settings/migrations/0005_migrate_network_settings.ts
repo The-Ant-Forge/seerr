@@ -1,6 +1,4 @@
-import type { AllSettings } from '@server/lib/settings';
-
-const migrateNetworkSettings = (settings: any): AllSettings => {
+const migrateNetworkSettings = (settings: any): any => {
   if (settings.network) {
     return settings;
   }

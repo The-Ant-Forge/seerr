@@ -1,6 +1,4 @@
-import type { AllSettings } from '@server/lib/settings';
-
-const removeLunaSeaSetting = (settings: any): AllSettings => {
+const removeLunaSeaSetting = (settings: any): any => {
   if (
     settings.notifications &&
     settings.notifications.agents &&

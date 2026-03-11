@@ -57,7 +57,7 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 |---|---------|----------|-------|
 | C.1 | ~~Race conditions in request submission~~ | `server/entity/MediaRequest.ts:46+` | **Done** `7aa1cfae` — wrapped critical section in AsyncLock keyed by mediaType+mediaId |
 | C.2 | ~~Missing transaction boundaries~~ | `MediaRequest.request()` | **Done** `7aa1cfae` — AsyncLock serialises the check-then-save; full DB transaction is a future enhancement |
-| C.3 | Missing unique indexes / FK assumptions | `server/entity/` | Review constraints that guard against data duplication at DB level |
+| C.3 | ~~Missing unique indexes / FK assumptions~~ | `server/entity/` | **Done** `5f1777e0` — added unique composite index on media(tmdbId, mediaType) with dedup migration |
 | C.4 | **[Codex]** Unbounded list endpoints | `server/routes/` | Missing pagination limits, expensive sort fields without DB indexes |
 
 ---
@@ -68,8 +68,8 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 
 | # | Finding | Location | Notes |
 |---|---------|----------|-------|
-| 10.1 | N+1 in Plex user import | `server/routes/user/index.ts:604-643` | Per-user DB lookup + save in for-loop |
-| 10.2 | N+1 in Jellyfin user import | `server/routes/user/index.ts:690-730` | Same pattern as Plex import |
+| 10.1 | ~~N+1 in Plex user import~~ | `server/routes/user/index.ts:604-643` | **Done** `268cdb7f` — single `IN(...)` pre-fetch query + Map lookup |
+| 10.2 | ~~N+1 in Jellyfin user import~~ | `server/routes/user/index.ts:690-730` | **Done** `268cdb7f` — single `IN(...)` pre-fetch query + Set lookup |
 | 10.3 | ~~8 sequential `getCount()` queries~~ | `server/routes/request.ts:338-425` | **Done** `f1c64a32` — single query with conditional aggregation |
 | 10.4 | Sequential availability sync | `server/lib/availabilitySync.ts` | No parallelism within a page of records |
 
@@ -78,18 +78,18 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 | # | Finding | Location | Notes |
 |---|---------|----------|-------|
 | 7.1 | File-wide `any` ESLint disable | `server/api/jellyfin.ts:1` | 11+ `any` usages throughout Jellyfin API client |
-| 7.2 | Multiple `any` in IMDB proxy | `server/api/rating/imdbRadarrProxy.ts:20,30,137-140` | Response interface fields typed as `any` |
-| 7.3 | All settings migrations accept `settings: any` | `server/lib/settings/migrations/` (8 files) | Could use a base settings type |
+| 7.2 | ~~Multiple `any` in IMDB proxy~~ | `server/api/rating/imdbRadarrProxy.ts:20,30,137-140` | **Done** — replaced with proper types (`string`, `string | null`, typed arrays) |
+| 7.3 | All settings migrations accept `settings: any` | `server/lib/settings/migrations/` (8 files) | **Kept as `any`** — migrations operate on legacy settings shapes that predate current `AllSettings` type; `any` is correct here |
 | 7.4 | 5 suppressed `any` in Selector | `src/components/Selector/index.tsx:139,212,283,364,628` | All ESLint-suppressed |
 
 ### Category 8: Test Gaps (focused)
 
 | # | Finding | Notes |
 |---|---------|-------|
-| 8.1 | `MediaRequest.request()` — zero coverage | Most critical business logic: permissions, quotas, status transitions |
-| 8.2 | Permission system | `server/lib/permissions.ts` |
+| 8.1 | ~~`MediaRequest.request()` — zero coverage~~ | **Partial** `10c81525` — Vitest infrastructure added; `MediaRequest.request()` needs integration test with DB mocks (future) |
+| 8.2 | ~~Permission system~~ | `server/lib/permissions.ts` | **Done** `10c81525` — 13 unit tests + 39 regression tests covering all permission flags, admin override, bitwise edge cases |
 | 8.3 | Approval/denial flows | Request lifecycle state machine |
-| 8.4 | Scanner/notification failure paths | `server/lib/scanners/`, `server/lib/notifications/` |
+| 8.4 | ~~Scanner/notification failure paths~~ | `server/lib/notifications/` | **Partial** — 28 notification agent tests + 14 status helper tests added; scanner tests still needed |
 
 ---
 
@@ -99,15 +99,15 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 
 | # | Finding | Location | Notes |
 |---|---------|----------|-------|
-| 3.1 | Status string switch block × 5 agents | `agents/gotify.ts:64-80`, `ntfy.ts:41-58`, `slack.ts:80-96`, `telegram.ts`, `pushbullet.ts` | Extract shared helper |
-| 3.2 | `getAvailableMediaServerName()` × 2 | `MovieDetails/index.tsx:302-324`, `TvDetails/index.tsx:330-352` | Identical — extract to shared hook |
-| 3.3 | `discoverRegion` / `streamingRegion` / `trailerUrl` × 2 | `MovieDetails:232`, `TvDetails:227` | Same logic duplicated — shared hook |
+| 3.1 | ~~Status string switch block × 7 agents~~ | `agents/gotify.ts`, `ntfy.ts`, `slack.ts`, `telegram.ts`, `pushbullet.ts`, `pushover.ts`, `discord.ts` | **Done** — extracted to `notificationStatusHelper.ts`, all agents updated |
+| 3.2 | ~~`getAvailableMediaServerName()` × 2~~ | `MovieDetails/index.tsx`, `TvDetails/index.tsx` | **Done** — extracted to `src/hooks/useMediaServerName.ts` |
+| 3.3 | ~~`discoverRegion` / `streamingRegion` / `trailerUrl` × 2~~ | `MovieDetails`, `TvDetails` | **Done** — extracted to `src/utils/mediaHelpers.ts` |
 
 ### Category 4: Naming & Consistency (non-bug)
 
 | # | Finding | Location | Notes |
 |---|---------|----------|-------|
-| 4.4 | Route param `:id` vs spec `{studioId}`/`{networkId}` | `server/routes/index.ts:219,239` vs `seerr-api.yml:7288,7308` | Mismatch visible to API consumers |
+| 4.4 | ~~Route param `:id` vs spec `{studioId}`/`{networkId}`~~ | `server/routes/index.ts:236,256` | **Done** — renamed to `:studioId`/`:networkId` to match OpenAPI spec |
 | 4.5 | ~~Inconsistent log levels for symmetric routes~~ | `server/routes/index.ts:426,446` | **Done** `efeeadf4` — see 5.6 |
 | 4.6 | ~~Magic number `request.status !== 1`~~ | `server/routes/request.ts:613` | **Done** `c823bbde` — uses `MediaRequestStatus.PENDING` |
 | 4.7 | ~~`process.env.port` lowercase typo~~ | `server/lib/notifications/agents/discord.ts:117` | **Done** `efeeadf4` — fixed to `process.env.PORT` |
@@ -138,14 +138,14 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 |---|---------|-------|
 | 2.1 | ~~`@types/csurf` for wrong package~~ | **Done** `1bc18cf7` — removed package + custom.d.ts shim; bundled types used; added key/path to csurf cookie config |
 | 2.2 | ~~`react-spring` — Slider only~~ | **Done** `1bc18cf7` — replaced useSpring with native `scrollTo({ behavior: 'smooth' })` |
-| 2.3 | `ace-builds` + `react-ace` (~1MB) | Single JSON editor in settings — moderate effort swap to lighter alternative |
+| 2.3 | ~~`ace-builds` + `react-ace` (~1MB)~~ | **Done** — replaced with native `<textarea>` in JSONEditor component; removed both deps |
 
 ### Category 9: Documentation Drift
 
 | # | Finding | Location |
 |---|---------|----------|
-| 9.1 | CLAUDE.md routes table missing 3 routes | `/overrideRule`, `/service`, `/person` |
-| 9.2 | CLAUDE.md doesn't note Express 5 | Relevant for path-to-regexp wildcard syntax |
+| 9.1 | ~~CLAUDE.md routes table missing 3 routes~~ | **Done** — added `/person`, `/service`, `/overrideRule` |
+| 9.2 | ~~CLAUDE.md doesn't note Express 5~~ | **Done** — updated to "Express 5" |
 | 9.3 | `/blacklist` deprecated routes sunset 2026-06-01 | `server/routes/index.ts:156-165` |
 
 ### Category 12: TODO/FIXME/HACK Audit
@@ -183,3 +183,14 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 
 ### Priority reorder
 Security+auth → data integrity/concurrency → error handling → validation → performance → targeted tests → robustness → duplication → dead code → docs → TODOs
+
+---
+
+## Infrastructure Improvements (session 2)
+
+| Change | Details |
+|--------|---------|
+| **Cypress → Playwright** | Migrated all 28 E2E test cases from Cypress to Playwright (`tests/e2e/`). Removed `cypress`, `cy-mobile-commands` deps. Added `@playwright/test`. |
+| **Polyfill cleanup** | Removed `downlevelIteration` from tsconfig (ES2021 has native iterators). Removed `-ms-overflow-style` IE shim from CSS. Removed dead `baseline-browser-mapping` dev dep. Kept @formatjs conditional polyfills (still needed for older mobile browsers). |
+| **Vitest expansion** | Grew from 18 to **201 tests** across 13 test files. Coverage: permissions (52 tests), notification agents (42 tests), settings migrations (28 tests), settings class (20 tests), constants (22 tests), download tracker (7 tests), servarr API (9 tests), utilities (21 tests). |
+| **Dead dep removal** | Removed `ace-builds`, `react-ace`, `cypress`, `cy-mobile-commands`, `baseline-browser-mapping`. Replaced JSONEditor with native `<textarea>`. |

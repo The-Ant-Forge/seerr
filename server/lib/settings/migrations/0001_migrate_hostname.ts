@@ -1,6 +1,4 @@
-import type { AllSettings } from '@server/lib/settings';
-
-const migrateHostname = (settings: any): AllSettings => {
+const migrateHostname = (settings: any): any => {
   if (settings.jellyfin?.hostname) {
     const { hostname } = settings.jellyfin;
     const protocolMatch = hostname.match(/^(https?):\/\//i);
