@@ -3,6 +3,7 @@ import SonarrAPI from '@server/api/servarr/sonarr';
 import { getRepository } from '@server/datasource';
 import { User } from '@server/entity/User';
 import type { AllSettings } from '@server/lib/settings';
+import logger from '@server/logger';
 
 const migrationArrTags = async (settings: any): Promise<AllSettings> => {
   if (
@@ -51,9 +52,9 @@ const migrationArrTags = async (settings: any): Promise<AllSettings> => {
         });
       }
     } catch (error) {
-      console.error(
+      logger.error(
         `Unable to rename Radarr tags to the new format. Please check your Radarr connection settings for the instance "${radarrSettings.name}".`,
-        error.message
+        { label: 'Settings', errorMessage: error.message }
       );
       errorOccurred = true;
     }
@@ -93,9 +94,9 @@ const migrationArrTags = async (settings: any): Promise<AllSettings> => {
         });
       }
     } catch (error) {
-      console.error(
+      logger.error(
         `Unable to rename Sonarr tags to the new format. Please check your Sonarr connection settings for the instance "${sonarrSettings.name}".`,
-        error.message
+        { label: 'Settings', errorMessage: error.message }
       );
       errorOccurred = true;
     }

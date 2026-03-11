@@ -268,47 +268,55 @@ userSettingsRoutes.post<
 userSettingsRoutes.post<{ authToken: string }>(
   '/linked-accounts/plex',
   isOwnProfile(),
-  async (req, res) => {
-    const settings = getSettings();
-    const userRepository = getRepository(User);
+  async (req, res, next) => {
+    try {
+      const settings = getSettings();
+      const userRepository = getRepository(User);
 
-    if (!req.user) {
-      return res.status(404).json({ code: ApiErrorCode.Unauthorized });
-    }
-    // Make sure Plex login is enabled
-    if (settings.main.mediaServerType !== MediaServerType.PLEX) {
-      return res.status(500).json({ message: 'Plex login is disabled' });
-    }
+      if (!req.user) {
+        return res.status(404).json({ code: ApiErrorCode.Unauthorized });
+      }
+      // Make sure Plex login is enabled
+      if (settings.main.mediaServerType !== MediaServerType.PLEX) {
+        return res.status(500).json({ message: 'Plex login is disabled' });
+      }
 
-    // First we need to use this auth token to get the user's email from plex.tv
-    const plextv = new PlexTvAPI(req.body.authToken);
-    const account = await plextv.getUser();
+      // First we need to use this auth token to get the user's email from plex.tv
+      const plextv = new PlexTvAPI(req.body.authToken);
+      const account = await plextv.getUser();
 
-    // Do not allow linking of an already linked account
-    if (await userRepository.exist({ where: { plexId: account.id } })) {
-      return res.status(422).json({
-        message: 'This Plex account is already linked to a Seerr user',
+      // Do not allow linking of an already linked account
+      if (await userRepository.exist({ where: { plexId: account.id } })) {
+        return res.status(422).json({
+          message: 'This Plex account is already linked to a Seerr user',
+        });
+      }
+
+      const user = req.user;
+
+      // Emails do not match
+      if (user.email !== account.email) {
+        return res.status(422).json({
+          message:
+            'This Plex account is registered under a different email address.',
+        });
+      }
+
+      // valid plex user found, link to current user
+      user.userType = UserType.PLEX;
+      user.plexId = account.id;
+      user.plexUsername = account.username;
+      user.plexToken = account.authToken;
+      await userRepository.save(user);
+
+      return res.status(204).send();
+    } catch (e) {
+      logger.error('Failed to link Plex account', {
+        label: 'User Settings',
+        errorMessage: e.message,
       });
+      return next({ status: 500, message: 'Failed to link Plex account.' });
     }
-
-    const user = req.user;
-
-    // Emails do not match
-    if (user.email !== account.email) {
-      return res.status(422).json({
-        message:
-          'This Plex account is registered under a different email address.',
-      });
-    }
-
-    // valid plex user found, link to current user
-    user.userType = UserType.PLEX;
-    user.plexId = account.id;
-    user.plexUsername = account.username;
-    user.plexToken = account.authToken;
-    await userRepository.save(user);
-
-    return res.status(204).send();
   }
 );
 

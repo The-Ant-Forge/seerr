@@ -114,7 +114,7 @@ class DiscordAgent
     const { embedPoster } = settings.notifications.agents.discord;
 
     const appUrl =
-      applicationUrl || `http://localhost:${process.env.port || 5055}`;
+      applicationUrl || `http://localhost:${process.env.PORT || 5055}`;
     let color = EmbedColors.DARK_PURPLE;
     const fields: Field[] = [];
 

@@ -6,9 +6,9 @@ import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { getAppVersion } from '@server/utils/appVersion';
 import { getHostname } from '@server/utils/getHostname';
+import { gravatarUrl } from '@server/utils/gravatar';
 import axios from 'axios';
 import { Router } from 'express';
-import { gravatarUrl } from '@server/utils/gravatar';
 import { createHash } from 'node:crypto';
 
 const router = Router();
@@ -169,6 +169,7 @@ router.get('/:jellyfinUserId', async (req, res) => {
     logger.error('Failed to proxy avatar image', {
       errorMessage: e.message,
     });
+    return res.status(502).end();
   }
 });
 

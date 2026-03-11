@@ -48,42 +48,49 @@ const router = Router();
 router.use(checkUser);
 
 router.get<unknown, StatusResponse>('/status', async (req, res) => {
-  const githubApi = new GithubAPI();
-
   const currentVersion = getAppVersion();
   const commitTag = getCommitTag();
   let updateAvailable = false;
   let commitsBehind = 0;
 
-  if (currentVersion.startsWith('develop-') && commitTag !== 'local') {
-    const commits = await githubApi.getSeerrCommits();
+  try {
+    const githubApi = new GithubAPI();
 
-    if (commits.length) {
-      const filteredCommits = commits.filter(
-        (commit) => !commit.commit.message.includes('[skip ci]')
-      );
-      if (filteredCommits[0].sha !== commitTag) {
-        updateAvailable = true;
+    if (currentVersion.startsWith('develop-') && commitTag !== 'local') {
+      const commits = await githubApi.getSeerrCommits();
+
+      if (commits.length) {
+        const filteredCommits = commits.filter(
+          (commit) => !commit.commit.message.includes('[skip ci]')
+        );
+        if (filteredCommits[0].sha !== commitTag) {
+          updateAvailable = true;
+        }
+
+        const commitIndex = filteredCommits.findIndex(
+          (commit) => commit.sha === commitTag
+        );
+
+        if (updateAvailable) {
+          commitsBehind = commitIndex;
+        }
       }
+    } else if (commitTag !== 'local') {
+      const releases = await githubApi.getSeerrReleases();
 
-      const commitIndex = filteredCommits.findIndex(
-        (commit) => commit.sha === commitTag
-      );
+      if (releases.length) {
+        const latestVersion = releases[0];
 
-      if (updateAvailable) {
-        commitsBehind = commitIndex;
+        if (!latestVersion.name.includes(currentVersion)) {
+          updateAvailable = true;
+        }
       }
     }
-  } else if (commitTag !== 'local') {
-    const releases = await githubApi.getSeerrReleases();
-
-    if (releases.length) {
-      const latestVersion = releases[0];
-
-      if (!latestVersion.name.includes(currentVersion)) {
-        updateAvailable = true;
-      }
-    }
+  } catch (e) {
+    logger.debug('Failed to check for updates from GitHub', {
+      label: 'API',
+      errorMessage: e.message,
+    });
   }
 
   return res.status(200).json({
@@ -115,12 +122,22 @@ router.get('/settings/public', async (req, res) => {
     return res.status(200).json(settings.fullPublicSettings);
   }
 });
-router.get('/settings/discover', isAuthenticated(), async (_req, res) => {
-  const sliderRepository = getRepository(DiscoverSlider);
+router.get('/settings/discover', isAuthenticated(), async (_req, res, next) => {
+  try {
+    const sliderRepository = getRepository(DiscoverSlider);
 
-  const sliders = await sliderRepository.find({ order: { order: 'ASC' } });
+    const sliders = await sliderRepository.find({
+      order: { order: 'ASC' },
+    });
 
-  return res.json(sliders);
+    return res.json(sliders);
+  } catch (e) {
+    logger.debug('Failed to retrieve discover sliders', {
+      label: 'API',
+      errorMessage: e.message,
+    });
+    return next({ status: 500, message: 'Unable to retrieve sliders.' });
+  }
 });
 router.get(
   '/settings/notifications/pushover/sounds',
@@ -443,7 +460,7 @@ router.get('/certifications/tv', isAuthenticated(), async (req, res, next) => {
 
     return res.status(200).json(certifications);
   } catch (e) {
-    logger.debug('Something went wrong retrieving TV certifications', {
+    logger.error('Something went wrong retrieving TV certifications', {
       label: 'API',
       errorMessage: e.message,
     });
