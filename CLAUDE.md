@@ -65,16 +65,21 @@ Port is configurable via `$PORT` env var (default 5055).
 ## Deploy (Local)
 **Destination:** `D:\Apps\Seerr`
 
-```bash
-# One-step build + deploy
-bash deploy.sh                 # uses default dest D:/Apps/Seerr
-bash deploy.sh /path/to/dest   # custom destination
+All runtime data lives under `DEST/config/` and is **never touched** by a safe deploy:
+- `config/db/db.sqlite3` — SQLite database
+- `config/settings.json` — app settings (Plex, Jellyfin, Sonarr, etc.)
+- `config/logs/` — log files
+- `config/cache/images/` — image proxy cache
+- `config/anime-list.xml` — cached anime list
 
-# Or manually:
-pnpm build
-# Copy: dist/, .next/, node_modules/, public/, package.json,
-#        pnpm-lock.yaml, seerr-api.yml, next.config.js,
-#        postcss.config.js, tailwind.config.js
+```bash
+# Safe push — overwrites build artifacts, preserves config/
+bash deploy.sh                     # default dest D:/Apps/Seerr
+bash deploy.sh /path/to/dest       # custom destination
+
+# Clean push — wipes destination completely (loses db + settings)
+bash deploy.sh --clean             # default dest
+bash deploy.sh --clean /path/to    # custom destination
 ```
 
 Start the deployed instance:
