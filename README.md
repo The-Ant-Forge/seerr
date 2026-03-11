@@ -24,6 +24,15 @@ This fork focuses on dependency modernisation and deployment improvements. All c
 - Multiple medium-effort upgrades: cronstrue, express-rate-limit, swagger-ui-express, connect-typeorm, @floating-ui/react (replacing react-popper-tooltip), yaml (replacing yamljs)
 - 2 real bugs found and fixed by new ESLint rules (`Number() ?? 1` &rarr; `|| 1`, `Infinity` import shadowing)
 
+### Code quality & hardening ([review spec](docs/spec-code-review-260310.md))
+
+- **Testing**: Cypress &rarr; Playwright for E2E tests; Vitest unit tests grown to 220 across 14 files (permissions, notifications, settings, routes, utilities)
+- **Type safety**: removed file-wide `any` disables from Jellyfin API client; typed Selector components; replaced `ace-builds` + `react-ace` with native `<textarea>`
+- **Performance**: parallelised availability sync (5 concurrent via `Promise.allSettled`); fixed N+1 queries in Plex/Jellyfin user imports; aggregated 8 sequential count queries into one
+- **Robustness**: 30s default timeout on all external API calls; pagination caps on all list endpoints; AsyncLock on request submission to prevent duplicates; unique composite index on media
+- **Bug fixes**: `plexUsername` sort returning wrong column; missing `await` on request save; wrong HTTP 401 &rarr; 403 for permission denial; `process.env.port` lowercase typo
+- **Cleanup**: removed 5 dead dependencies (`ace-builds`, `react-ace`, `react-spring`, `@types/csurf`, `cypress`); extracted shared helpers to reduce duplication across notification agents and detail components
+
 ### Deployment tooling
 
 - **`deploy.sh`** &mdash; one-step build and deploy to a local folder
@@ -31,7 +40,7 @@ This fork focuses on dependency modernisation and deployment improvements. All c
 
 ### What's NOT changed
 
-- No feature changes, UI modifications, or API changes
+- No feature changes or UI modifications
 - All existing functionality preserved
 - Upstream changes can be merged via `git fetch upstream develop && git merge upstream/develop`
 
