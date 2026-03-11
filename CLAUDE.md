@@ -153,3 +153,25 @@ Never use real movie or TV show names. Always make up example ones.
 
 ### Committing from non-interactive environments
 The commitizen `prepare-commit-msg` hook requires a TTY. Use `HUSKY=0` to bypass all hooks when committing from non-interactive environments (e.g. Claude Code).
+
+
+## Code Review Phases
+
+Periodically we do a consolidation review covering all source, tests, build config, and metadata.
+
+### Review Checklist
+1. **Dead code** — unused functions, classes, modules, imports, config keys
+2. **Dead dependencies** — libraries that are unused or underused relative
+   to what we could replace inline
+3. **Duplication** — repeated or near-identical logic that should be shared
+4. **Naming & consistency** — mixed conventions, unclear names, stale comments
+5. **Error handling** — inconsistent patterns, swallowed exceptions, missing
+   user-facing messages
+6. **Security** — input validation gaps, credential handling, OWASP patterns
+7. **Type safety** — missing annotations, `Any` overuse, type errors
+8. **Test gaps** — untested code paths, stale tests, missing edge cases
+9. **Documentation drift** — specs, docstrings, or README sections that no
+   longer match the code
+10. **Performance** — unnecessary work, avoidable allocations, slow patterns
+11. **Robustness** — race conditions, resource leaks, missing cleanup
+12. **TODO/FIXME/HACK audit** — resolve or remove stale markers

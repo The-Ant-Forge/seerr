@@ -32,9 +32,9 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 
 | # | Finding | Location | Notes |
 |---|---------|----------|-------|
-| 4.1 | **BUG**: `plexUsername` sort returns `jellyfinUsername` | `server/routes/user/index.ts:76` | Copy-paste error in `?sort=displayname` SQL CASE — Plex users sort by empty string |
-| 4.2 | Missing `await` on `requestRepository.save(request)` | `server/routes/request.ts:515` | Fire-and-forget write in movie PUT handler; TV branch at :591 correctly awaits |
-| 4.3 | Wrong HTTP 401 for permission denial | `server/routes/request.ts:615` | Should be 403 (unauthorised ≠ unauthenticated) |
+| 4.1 | ~~**BUG**: `plexUsername` sort returns `jellyfinUsername`~~ | `server/routes/user/index.ts:76` | **Done** `c823bbde` — fixed to `LOWER(user.plexUsername)` |
+| 4.2 | ~~Missing `await` on `requestRepository.save(request)`~~ | `server/routes/request.ts:515` | **Done** `c823bbde` — added `await` |
+| 4.3 | ~~Wrong HTTP 401 for permission denial~~ | `server/routes/request.ts:615` | **Done** `c823bbde` — changed to 403 + `MediaRequestStatus.PENDING` constant |
 
 ---
 
@@ -44,12 +44,12 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 
 | # | Finding | Location | Notes |
 |---|---------|----------|-------|
-| 5.1 | `/status` route: no try/catch around GitHub API | `server/routes/index.ts:50-96` | Unhandled rejection crashes handler when GitHub unreachable; polled frequently from UI |
-| 5.2 | Avatar proxy catch sends no response | `server/routes/avatarproxy.ts:167-172` | Logs error but never calls `res.status().end()` or `next(e)` — connection hangs |
-| 5.3 | `POST /linked-accounts/plex` — no try/catch | `server/routes/user/usersettings.ts:268-313` | Multiple awaits unprotected; parallel Jellyfin POST and DELETE handlers have try/catch |
-| 5.4 | `/settings/discover` — uncaught DB await | `server/routes/index.ts:118-124` | DB error → unhandled rejection, no response sent |
-| 5.5 | `console.error` instead of Winston logger | `server/lib/settings/migrations/0007_migrate_arr_tags.ts:54,96` | Inconsistent with rest of server code |
-| 5.6 | Inconsistent error log levels | `server/routes/index.ts:426` vs `:446` | Movie certifications → `logger.error`; TV certifications → `logger.debug` (symmetric routes) |
+| 5.1 | ~~`/status` route: no try/catch around GitHub API~~ | `server/routes/index.ts:50-96` | **Done** `efeeadf4` — wrapped in try/catch, graceful degradation |
+| 5.2 | ~~Avatar proxy catch sends no response~~ | `server/routes/avatarproxy.ts:167-172` | **Done** `efeeadf4` — returns 502 on error |
+| 5.3 | ~~`POST /linked-accounts/plex` — no try/catch~~ | `server/routes/user/usersettings.ts:268-313` | **Done** `efeeadf4` — added try/catch with error logging |
+| 5.4 | ~~`/settings/discover` — uncaught DB await~~ | `server/routes/index.ts:118-124` | **Done** `efeeadf4` — added try/catch |
+| 5.5 | ~~`console.error` instead of Winston logger~~ | `server/lib/settings/migrations/0007_migrate_arr_tags.ts:54,96` | **Done** `efeeadf4` — replaced with `logger.error` |
+| 5.6 | ~~Inconsistent error log levels~~ | `server/routes/index.ts:426` vs `:446` | **Done** `efeeadf4` — TV certifications changed to `logger.error` |
 
 ### [Codex] Concurrency & Transaction Safety
 
@@ -108,9 +108,9 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 | # | Finding | Location | Notes |
 |---|---------|----------|-------|
 | 4.4 | Route param `:id` vs spec `{studioId}`/`{networkId}` | `server/routes/index.ts:219,239` vs `seerr-api.yml:7288,7308` | Mismatch visible to API consumers |
-| 4.5 | Inconsistent log levels for symmetric routes | `server/routes/index.ts:426,446` | See 5.6 |
-| 4.6 | Magic number `request.status !== 1` | `server/routes/request.ts:613` | Should use `MediaRequestStatus.PENDING` |
-| 4.7 | `process.env.port` lowercase typo | `server/lib/notifications/agents/discord.ts:117` | Always `undefined` on Linux/Mac; fallback saves it |
+| 4.5 | ~~Inconsistent log levels for symmetric routes~~ | `server/routes/index.ts:426,446` | **Done** `efeeadf4` — see 5.6 |
+| 4.6 | ~~Magic number `request.status !== 1`~~ | `server/routes/request.ts:613` | **Done** `c823bbde` — uses `MediaRequestStatus.PENDING` |
+| 4.7 | ~~`process.env.port` lowercase typo~~ | `server/lib/notifications/agents/discord.ts:117` | **Done** `efeeadf4` — fixed to `process.env.PORT` |
 
 ### Category 11: Robustness
 
@@ -127,10 +127,10 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 
 | # | Finding | Location |
 |---|---------|----------|
-| 1.1 | 21/26 `EmbedColors` enum values unused | `server/lib/notifications/agents/discord.ts:16-40` |
-| 1.2 | `Nullable<T>`, `Maybe<T>` never imported | `src/utils/typeHelpers.ts:2-3` |
-| 1.3 | Commented-out query fragments | `server/routes/discover.ts:894-897` |
-| 1.4 | Dead commented code | `server/routes/user/index.ts:677` |
+| 1.1 | ~~21/26 `EmbedColors` enum values unused~~ | `server/lib/notifications/agents/discord.ts:16-40` — **Kept**: standard Discord colour constants, likely needed by upstream/future features |
+| 1.2 | ~~`Nullable<T>`, `Maybe<T>` never imported~~ | `src/utils/typeHelpers.ts` — **Done**: removed |
+| 1.3 | ~~Commented-out query fragments~~ | `server/routes/discover.ts` — **Done**: removed |
+| 1.4 | ~~Dead commented code~~ | `server/routes/user/index.ts` — **Done**: removed |
 
 ### Category 2: Dead Dependencies
 
