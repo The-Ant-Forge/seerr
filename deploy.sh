@@ -61,6 +61,7 @@ cp "$SRC/tailwind.config.js" "$DEST/"
 # System tray manager
 cp "$SRC/Seerr-Tray.ps1"    "$DEST/"
 cp "$SRC/Seerr-Tray.vbs"    "$DEST/"
+cp "$SRC/public/favicon.ico" "$DEST/seerr.ico"
 
 # Prepare script (bin/prepare.js) needs to exist for the lifecycle hook
 mkdir -p "$DEST/bin"

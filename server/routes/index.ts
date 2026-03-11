@@ -25,9 +25,11 @@ import {
   appDataStatus,
 } from '@server/utils/appDataVolume';
 import { getAppVersion, getCommitTag } from '@server/utils/appVersion';
+import { restoreFromZip, validateBackupZip } from '@server/utils/backup';
 import restartFlag from '@server/utils/restartFlag';
 import { isPerson } from '@server/utils/typeHelpers';
-import { Router } from 'express';
+import express, { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import authRoutes from './auth';
 import blocklistRoutes from './blocklist';
 import collectionRoutes from './collection';
@@ -111,6 +113,34 @@ router.get('/status/appdata', (_req, res) => {
 });
 
 router.use('/user', isAuthenticated(), user);
+// Setup restore — unauthenticated, only available before initialization
+router.post(
+  '/settings/backup/restore/setup',
+  rateLimit({ windowMs: 60 * 1000, max: 2 }),
+  express.raw({ type: 'application/zip', limit: '500mb' }),
+  async (req, res) => {
+    const settings = getSettings();
+    if (settings.public.initialized) {
+      return res.status(403).json({ error: 'Instance is already initialized' });
+    }
+
+    try {
+      if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+        return res.status(400).json({ error: 'No backup file provided' });
+      }
+
+      const { manifest, zip } = validateBackupZip(req.body);
+      await restoreFromZip(zip, manifest);
+
+      return res.json({ success: true, restartRequired: false });
+    } catch (e) {
+      return res
+        .status(400)
+        .json({ error: (e as Error).message || 'Restore failed' });
+    }
+  }
+);
+
 router.get('/settings/public', async (req, res) => {
   const settings = getSettings();
 

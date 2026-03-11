@@ -18,22 +18,36 @@ if ($Port -eq 0) {
 $script:seerrProcess = $null
 $script:baseUrl = "http://localhost:$Port"
 
-# --- Icon generation (simple "S" icon) ---
-function New-SeerrIcon([System.Drawing.Color]$color) {
-    $bmp = New-Object System.Drawing.Bitmap(16, 16)
-    $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.SmoothingMode = 'AntiAlias'
-    $g.Clear($color)
-    $font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-    $g.DrawString('S', $font, [System.Drawing.Brushes]::White, -1, 0)
-    $g.Dispose()
-    $font.Dispose()
-    $icon = [System.Drawing.Icon]::FromHandle($bmp.GetHicon())
-    return $icon
+# --- Icon loading ---
+$icoPath = Join-Path $SeerrDir 'seerr.ico'
+if (Test-Path $icoPath) {
+    $iconRunning = New-Object System.Drawing.Icon($icoPath, 16, 16)
+    # Grayscale version for stopped state
+    $bmp = $iconRunning.ToBitmap()
+    for ($x = 0; $x -lt $bmp.Width; $x++) {
+        for ($y = 0; $y -lt $bmp.Height; $y++) {
+            $px = $bmp.GetPixel($x, $y)
+            $gray = [int](0.3 * $px.R + 0.59 * $px.G + 0.11 * $px.B)
+            $bmp.SetPixel($x, $y, [System.Drawing.Color]::FromArgb($px.A, $gray, $gray, $gray))
+        }
+    }
+    $iconStopped = [System.Drawing.Icon]::FromHandle($bmp.GetHicon())
+} else {
+    # Fallback: generate simple "S" icons
+    function New-SeerrIcon([System.Drawing.Color]$color) {
+        $bmp = New-Object System.Drawing.Bitmap(16, 16)
+        $g = [System.Drawing.Graphics]::FromImage($bmp)
+        $g.SmoothingMode = 'AntiAlias'
+        $g.Clear($color)
+        $font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+        $g.DrawString('S', $font, [System.Drawing.Brushes]::White, -1, 0)
+        $g.Dispose()
+        $font.Dispose()
+        return [System.Drawing.Icon]::FromHandle($bmp.GetHicon())
+    }
+    $iconRunning = New-SeerrIcon ([System.Drawing.Color]::FromArgb(108, 93, 211))
+    $iconStopped = New-SeerrIcon ([System.Drawing.Color]::FromArgb(100, 100, 100))
 }
-
-$iconStopped = New-SeerrIcon ([System.Drawing.Color]::FromArgb(100, 100, 100))
-$iconRunning = New-SeerrIcon ([System.Drawing.Color]::FromArgb(108, 93, 211))
 
 # --- Tray icon setup ---
 $trayIcon = New-Object System.Windows.Forms.NotifyIcon

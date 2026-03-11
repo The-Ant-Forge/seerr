@@ -18,7 +18,7 @@ import type { Library } from '@server/lib/settings';
 import axios from 'axios';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { useToasts } from 'react-toast-notifications';
 import useSWR, { mutate } from 'swr';
@@ -40,6 +40,14 @@ const messages = defineMessages('components.Setup', {
   configureservices: 'Configure Services',
   librarieserror:
     'Validation failed. Please toggle the libraries again to continue.',
+  restoreFromBackup: 'Restore from a backup',
+  restoreSetupDescription:
+    'Have an existing Seerr backup? Upload it to restore your instance.',
+  selectBackupFile: 'Select Backup File',
+  restoring: 'Restoring\u2026',
+  restoreFailed: 'Restore failed: {error}',
+  orDivider: 'or',
+  back: 'Back',
 });
 
 const Setup = () => {
@@ -51,6 +59,10 @@ const Setup = () => {
   const [mediaServerType, setMediaServerType] = useState(
     MediaServerType.NOT_CONFIGURED
   );
+  const [showRestore, setShowRestore] = useState(false);
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { locale } = useLocale();
   const settings = useSettings();
@@ -140,6 +152,36 @@ const Setup = () => {
 
   const handleComplete = () => {
     validateLibraries();
+  };
+
+  const handleSetupRestore = async () => {
+    if (!restoreFile) return;
+    setIsRestoring(true);
+
+    try {
+      const buffer = await restoreFile.arrayBuffer();
+      const response = await fetch('/api/v1/settings/backup/restore/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/zip' },
+        body: buffer,
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Restore failed');
+      }
+
+      mutate('/api/v1/settings/public');
+      router.push('/');
+    } catch (e) {
+      toasts.addToast(
+        intl.formatMessage(messages.restoreFailed, {
+          error: (e as Error).message,
+        }),
+        { autoDismiss: false, appearance: 'error' }
+      );
+      setIsRestoring(false);
+    }
   };
 
   if (settings.currentSettings.initialized) return <></>;
@@ -252,6 +294,69 @@ const Setup = () => {
                   </div>
                 </div>
               </div>
+              <div className="mt-6 flex items-center justify-center">
+                <div className="w-full border-t border-gray-600" />
+                <span className="mx-4 flex-shrink-0 text-sm text-gray-400">
+                  {intl.formatMessage(messages.orDivider)}
+                </span>
+                <div className="w-full border-t border-gray-600" />
+              </div>
+              {!showRestore ? (
+                <div className="mt-4 flex justify-center">
+                  <button
+                    onClick={() => setShowRestore(true)}
+                    className="text-sm text-indigo-400 transition hover:text-indigo-300"
+                  >
+                    {intl.formatMessage(messages.restoreFromBackup)}
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-4 flex flex-col items-center space-y-3">
+                  <p className="text-center text-sm text-gray-400">
+                    {intl.formatMessage(messages.restoreSetupDescription)}
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".zip"
+                    onChange={(e) =>
+                      setRestoreFile(e.target.files?.[0] ?? null)
+                    }
+                    className="hidden"
+                  />
+                  <div className="flex items-center space-x-3">
+                    <Button
+                      buttonType="default"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {intl.formatMessage(messages.selectBackupFile)}
+                    </Button>
+                    <span className="text-sm text-gray-400">
+                      {restoreFile?.name ?? ''}
+                    </span>
+                  </div>
+                  <div className="flex space-x-3">
+                    <Button
+                      buttonType="primary"
+                      disabled={!restoreFile || isRestoring}
+                      onClick={handleSetupRestore}
+                    >
+                      {isRestoring
+                        ? intl.formatMessage(messages.restoring)
+                        : intl.formatMessage(messages.restoreFromBackup)}
+                    </Button>
+                    <Button
+                      buttonType="default"
+                      onClick={() => {
+                        setShowRestore(false);
+                        setRestoreFile(null);
+                      }}
+                    >
+                      {intl.formatMessage(messages.back)}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {currentStep === 2 && (

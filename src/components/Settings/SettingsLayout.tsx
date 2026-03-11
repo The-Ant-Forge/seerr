@@ -17,6 +17,7 @@ const messages = defineMessages('components.Settings', {
   menuNotifications: 'Notifications',
   menuLogs: 'Logs',
   menuJobs: 'Jobs & Cache',
+  menuBackup: 'Backup & Restore',
   menuAbout: 'About',
   menuMetadataProviders: 'Metadata Providers',
 });
@@ -79,6 +80,11 @@ const SettingsLayout = ({ children }: SettingsLayoutProps) => {
       text: intl.formatMessage(messages.menuJobs),
       route: '/settings/jobs',
       regex: /^\/settings\/jobs/,
+    },
+    {
+      text: intl.formatMessage(messages.menuBackup),
+      route: '/settings/backup',
+      regex: /^\/settings\/backup/,
     },
     {
       text: intl.formatMessage(messages.menuAbout),
