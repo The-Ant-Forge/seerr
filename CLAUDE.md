@@ -84,6 +84,10 @@ bash deploy.sh --clean /path/to    # custom destination
 
 Start the deployed instance:
 ```bash
+# Recommended: system tray app (auto-starts server, no console window)
+# Double-click D:\Apps\Seerr\Seerr-Tray.vbs
+
+# Or manually:
 cd D:/Apps/Seerr
 NODE_ENV=production node dist/index.js   # or: pnpm start
 ```

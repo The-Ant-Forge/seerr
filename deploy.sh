@@ -44,10 +44,11 @@ fi
 echo "==> Deploying to $DEST..."
 mkdir -p "$DEST"
 
-# Core build artifacts (robocopy exit codes 0-7 are success)
-robocopy "$SRC/dist"    "$DEST/dist"    /MIR /NFL /NDL /NJH /NJS /NP > /dev/null 2>&1 || true
-robocopy "$SRC/.next"   "$DEST/.next"   /MIR /NFL /NDL /NJH /NJS /NP > /dev/null 2>&1 || true
-robocopy "$SRC/public"  "$DEST/public"  /MIR /NFL /NDL /NJH /NJS /NP > /dev/null 2>&1 || true
+# Core build artifacts — use rsync-style mirror (robocopy flags get mangled by MSYS)
+for dir in dist .next public; do
+  rm -rf "$DEST/$dir"
+  cp -r "$SRC/$dir" "$DEST/$dir"
+done
 
 # Config and manifest files
 cp "$SRC/package.json"        "$DEST/"
@@ -72,5 +73,6 @@ CI=true pnpm install --prod
 
 echo ""
 echo "==> Deploy complete ($( [ "$CLEAN" = true ] && echo "clean" || echo "safe" ))."
-echo "    Start with: cd $DEST && NODE_ENV=production node dist/index.js"
+echo "    Start with: double-click $DEST/Seerr-Tray.vbs (system tray)"
+echo "    Or:         cd $DEST && NODE_ENV=production node dist/index.js"
 echo "    Or:         cd $DEST && pnpm start"
