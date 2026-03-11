@@ -2,16 +2,38 @@
 <img src="./public/logo_full.svg" alt="Seerr" style="margin: 20px 0;">
 </p>
 <p align="center">
-<img src="https://github.com/seerr-team/seerr/actions/workflows/release.yml/badge.svg" alt="Seerr Release" />
-<img src="https://github.com/seerr-team/seerr/actions/workflows/ci.yml/badge.svg" alt="Seerr CI">
-</p>
-<p align="center">
-<a href="https://discord.gg/seerr"><img src="https://img.shields.io/discord/783137440809746482" alt="Discord"></a>
-<a href="https://hub.docker.com/r/seerr/seerr"><img src="https://img.shields.io/docker/pulls/seerr/seerr" alt="Docker pulls"></a>
-<a href="https://translate.seerr.dev/engage/seerr/"><img src="https://translate.seerr.dev/widget/seerr/svg-badge.svg" alt="Translation status" /></a>
 <a href="https://github.com/seerr-team/seerr/blob/develop/LICENSE"><img alt="GitHub" src="https://img.shields.io/github/license/seerr-team/seerr"></a>
+</p>
+
+> **Fork of [seerr-team/seerr](https://github.com/seerr-team/seerr)** — modernised dependencies, Express 5, ESLint flat config, and Windows deployment tooling.
 
 **Seerr** is a free and open source software application for managing requests for your media library. It integrates with the media server of your choice: [Jellyfin](https://jellyfin.org), [Plex](https://plex.tv), and [Emby](https://emby.media/). In addition, it integrates with your existing services, such as **[Sonarr](https://sonarr.tv/)**, **[Radarr](https://radarr.video/)**.
+
+## What's changed in this fork
+
+This fork focuses on dependency modernisation and deployment improvements. All changes are committed separately for clean regression attribution.
+
+### Dependency updates ([full spec](docs/Spec-Dependency-Update.md))
+
+- **15 packages removed** by replacing with native browser/Node.js APIs (clipboard, intersection observer, date-fns, gravatar, semver, and more)
+- **Express 4 &rarr; 5** with path-to-regexp v8 wildcard syntax fixes
+- **ESLint 8 &rarr; 9** with flat config migration (`eslint.config.js`)
+- **yup 0.32 &rarr; 1.7** with 34 `.when()` API transformations across 16 files
+- **TypeScript 5.4 &rarr; 5.9** + @typescript-eslint v8
+- **Headless UI 1 &rarr; 2**, husky 8 &rarr; 9, lint-staged 13 &rarr; 16, commitlint 17 &rarr; 20
+- Multiple medium-effort upgrades: cronstrue, express-rate-limit, swagger-ui-express, connect-typeorm, @floating-ui/react (replacing react-popper-tooltip), yaml (replacing yamljs)
+- 2 real bugs found and fixed by new ESLint rules (`Number() ?? 1` &rarr; `|| 1`, `Infinity` import shadowing)
+
+### Deployment tooling
+
+- **`deploy.sh`** &mdash; one-step build and deploy to a local folder
+- **System tray manager** (PowerShell + VBS) &mdash; start/stop/open-browser from the Windows system tray, like Radarr/Sonarr
+
+### What's NOT changed
+
+- No feature changes, UI modifications, or API changes
+- All existing functionality preserved
+- Upstream changes can be merged via `git fetch upstream develop && git merge upstream/develop`
 
 ## Current Features
 
@@ -67,11 +89,4 @@ Our [Code of Conduct](./CODE_OF_CONDUCT.md) applies to all Seerr community chann
 
 ## Contributing
 
-You can help improve Seerr too! Check out our [Contribution Guide](./CONTRIBUTING.md) to get started.
-
-## Contributors ✨
-
-[![Contributors](https://opencollective.com/seerr/contributors.svg?width=890)](https://opencollective.com/seerr/#backers)
-
-[![Become a Backer](https://opencollective.com/seerr/backers.svg)](https://opencollective.com/seerr/#backers)
-[![Become a Sponsor](https://opencollective.com/seerr/sponsors.svg)](https://opencollective.com/seerr/#sponsors)
+This is a personal fork. For upstream contributions, see the [original repo](https://github.com/seerr-team/seerr) and its [Contribution Guide](https://github.com/seerr-team/seerr/blob/develop/CONTRIBUTING.md).
