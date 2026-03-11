@@ -26,7 +26,7 @@ import { MediaRequest } from './MediaRequest';
 import Season from './Season';
 
 @Entity()
-@Index(['tmdbId', 'mediaType'])
+@Index(['tmdbId', 'mediaType'], { unique: true })
 class Media {
   public static async getRelatedMedia(
     user: User | undefined,
