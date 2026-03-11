@@ -76,7 +76,7 @@ router.get('/', async (req, res, next) => {
                 LOWER(user.jellyfinUsername)
               END)
             ELSE
-              LOWER(user.username)
+              LOWER(user.plexUsername)
             END`,
             'displayname_sort_key'
           )
