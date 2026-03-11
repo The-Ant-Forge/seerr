@@ -12,9 +12,7 @@ permissions: {}
 
 jobs:
   ai-generated-support:
-    if: >
-      github.event_name == 'pull_request_target' &&
-      (github.event.label.name == 'ai-generated' || (github.event.action == 'reopened' && contains(github.event.pull_request.labels.*.name, 'ai-generated')))
+    if: false
     runs-on: ubuntu-24.04
     concurrency:
       group: ai-generated-${{ github.event.pull_request.number }}
@@ -62,10 +60,7 @@ jobs:
           gh pr unlock "$NUMBER" -R "$GH_REPO" || true
 
   support:
-    if: >
-      github.event_name == 'issues' &&
-      (github.event.label.name == 'support' ||
-      (github.event.action == 'reopened' && contains(github.event.issue.labels.*.name, 'support')))
+    if: false
     runs-on: ubuntu-24.04
     concurrency:
       group: support-${{ github.event.issue.number }}

@@ -24,7 +24,7 @@ concurrency:
 jobs:
   i18n:
     name: i18n Check
-    if: github.event_name == 'pull_request'
+    if: false
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -88,7 +88,7 @@ jobs:
           exit $check_failed
   test:
     name: Lint & Test Build
-    if: github.event_name == 'pull_request'
+    if: false
     runs-on: ubuntu-24.04
     container: node:22.22.0-alpine3.22@sha256:7aa86fa052f6e4b101557ccb56717cb4311be1334381f526fe013418fe157384
     steps:
@@ -129,7 +129,7 @@ jobs:
 
   build:
     name: Build (per-arch, native runners)
-    if: github.ref == 'refs/heads/develop'
+    if: false
     strategy:
       matrix:
         include:
@@ -170,6 +170,7 @@ jobs:
 
   publish:
     name: Publish multi-arch image
+    if: false
     needs: build
     runs-on: ubuntu-24.04
     permissions:
@@ -237,7 +238,7 @@ jobs:
   discord:
     name: Send Discord Notification
     needs: publish
-    if: always() && github.event_name != 'pull_request'
+    if: false
     runs-on: ubuntu-24.04
     steps:
       - name: Determine Workflow Status

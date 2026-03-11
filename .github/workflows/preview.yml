@@ -21,6 +21,7 @@ concurrency:
 jobs:
   build:
     name: Build (per-arch, native runners)
+    if: false
     strategy:
       matrix:
         include:
@@ -71,6 +72,7 @@ jobs:
 
   publish:
     name: Publish multi-arch image
+    if: false
     needs: build
     runs-on: ubuntu-24.04
     permissions:

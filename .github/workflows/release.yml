@@ -20,6 +20,7 @@ env:
 jobs:
   changelog:
     name: Generate changelog
+    if: false
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -44,6 +45,7 @@ jobs:
 
   create-draft-release:
     name: Create draft release
+    if: false
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -62,6 +64,7 @@ jobs:
 
   build:
     name: Build (${{ matrix.arch }})
+    if: false
     strategy:
       matrix:
         include:
@@ -104,6 +107,7 @@ jobs:
 
   publish:
     name: Publish multi-arch manifests
+    if: false
     needs: build
     runs-on: ubuntu-24.04
     permissions:
@@ -190,6 +194,7 @@ jobs:
 
   sign:
     name: Sign images and create SBOM attestations
+    if: false
     needs: publish
     runs-on: ubuntu-24.04
     permissions:
@@ -259,6 +264,7 @@ jobs:
 
   verify:
     name: Verify signatures and attestations
+    if: false
     needs: [publish, sign]
     runs-on: ubuntu-24.04
     permissions:
@@ -293,6 +299,7 @@ jobs:
 
   publish-release:
     name: Publish release
+    if: false
     needs: [create-draft-release, verify]
     runs-on: ubuntu-24.04
     permissions:

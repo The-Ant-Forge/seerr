@@ -13,6 +13,7 @@ env:
 
 jobs:
   build-index:
+    if: false
     runs-on: ubuntu-24.04
     permissions:
       issues: read

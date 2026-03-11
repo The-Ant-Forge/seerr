@@ -15,7 +15,7 @@ concurrency:
 jobs:
   determine-tag-version:
     name: Determine tag version
-    if: github.ref == 'refs/heads/main'
+    if: false
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -42,7 +42,7 @@ jobs:
 
   create-tag:
     name: Create tag
-    if: github.ref == 'refs/heads/main'
+    if: false
     runs-on: ubuntu-24.04
     permissions:
       contents: write

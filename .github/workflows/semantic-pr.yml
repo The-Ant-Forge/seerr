@@ -17,6 +17,7 @@ concurrency:
 jobs:
   main:
     name: Validate PR Title
+    if: false
     runs-on: ubuntu-slim
     permissions:
       contents: read

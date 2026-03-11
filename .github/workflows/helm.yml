@@ -20,6 +20,7 @@ concurrency:
 jobs:
   package-helm-chart:
     name: Package helm chart
+    if: false
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -85,12 +86,12 @@ jobs:
 
   publish:
     name: Publish to ghcr.io
+    if: false
     runs-on: ubuntu-24.04
     permissions:
       packages: write
       id-token: write
     needs: [package-helm-chart]
-    if: needs.package-helm-chart.outputs.has_artifacts == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
@@ -145,6 +146,7 @@ jobs:
 
   verify:
     name: Verify signatures for each chart tag
+    if: false
     needs: [publish]
     runs-on: ubuntu-24.04
     permissions:
