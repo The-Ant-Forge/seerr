@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import ExternalAPI from '@server/api/externalapi';
 import { ApiErrorCode } from '@server/constants/error';
 import { MediaServerType } from '@server/constants/server';
@@ -122,6 +121,24 @@ export interface JellyfinItemsReponse {
   StartIndex: number;
 }
 
+export interface JellyfinSystemInfo {
+  ServerName: string;
+  [key: string]: unknown;
+}
+
+interface JellyfinMediaFoldersResponse {
+  Items: JellyfinMediaFolder[];
+}
+
+interface JellyfinApiKey {
+  AccessToken: string;
+  AppName: string;
+}
+
+interface JellyfinApiKeysResponse {
+  Items: JellyfinApiKey[];
+}
+
 class JellyfinAPI extends ExternalAPI {
   private userId?: string;
   private mediaServerType: MediaServerType;
@@ -221,9 +238,10 @@ class JellyfinAPI extends ExternalAPI {
     return;
   }
 
-  public async getSystemInfo(): Promise<any> {
+  public async getSystemInfo(): Promise<JellyfinSystemInfo> {
     try {
-      const systemInfoResponse = await this.get<any>('/System/Info');
+      const systemInfoResponse =
+        await this.get<JellyfinSystemInfo>('/System/Info');
 
       return systemInfoResponse;
     } catch (e) {
@@ -281,16 +299,19 @@ class JellyfinAPI extends ExternalAPI {
 
   public async getLibraries(): Promise<JellyfinLibrary[]> {
     try {
-      const mediaFolderResponse = await this.get<any>(`/Library/MediaFolders`);
+      const mediaFolderResponse = await this.get<JellyfinMediaFoldersResponse>(
+        `/Library/MediaFolders`
+      );
 
       return this.mapLibraries(mediaFolderResponse.Items);
     } catch (mediaFoldersResponseError) {
       // fallback to user views to get libraries
       // this only and maybe/depending on factors affects LDAP users
       try {
-        const mediaFolderResponse = await this.get<any>(
-          `/Users/${this.userId ?? 'Me'}/Views`
-        );
+        const mediaFolderResponse =
+          await this.get<JellyfinMediaFoldersResponse>(
+            `/Users/${this.userId ?? 'Me'}/Views`
+          );
 
         return this.mapLibraries(mediaFolderResponse.Items);
       } catch (e) {
@@ -335,7 +356,7 @@ class JellyfinAPI extends ExternalAPI {
 
   public async getLibraryContents(id: string): Promise<JellyfinLibraryItem[]> {
     try {
-      const libraryItemsResponse = await this.get<any>(
+      const libraryItemsResponse = await this.get<JellyfinItemsReponse>(
         `/Items?SortBy=SortName&SortOrder=Ascending&IncludeItemTypes=Series,Movie,Others&Recursive=true&StartIndex=0&ParentId=${id}&collapseBoxSetItems=false`
       );
 
@@ -358,7 +379,7 @@ class JellyfinAPI extends ExternalAPI {
         this.mediaServerType === MediaServerType.JELLYFIN
           ? `/Items/Latest`
           : `/Users/${this.userId}/Items/Latest`;
-      const itemResponse = await this.get<any>(
+      const itemResponse = await this.get<JellyfinLibraryItem[]>(
         `${endpoint}?Limit=12&ParentId=${id}${
           this.mediaServerType === MediaServerType.JELLYFIN
             ? `&userId=${this.userId ?? 'Me'}`
@@ -406,7 +427,9 @@ class JellyfinAPI extends ExternalAPI {
 
   public async getSeasons(seriesID: string): Promise<JellyfinLibraryItem[]> {
     try {
-      const seasonResponse = await this.get<any>(`/Shows/${seriesID}/Seasons`);
+      const seasonResponse = await this.get<{ Items: JellyfinLibraryItem[] }>(
+        `/Shows/${seriesID}/Seasons`
+      );
 
       return seasonResponse.Items;
     } catch (e) {
@@ -427,7 +450,7 @@ class JellyfinAPI extends ExternalAPI {
     options?: T
   ): Promise<EpisodeReturn<T>> {
     try {
-      const episodeResponse = await this.get<any>(
+      const episodeResponse = await this.get<{ Items: JellyfinLibraryItem[] }>(
         `/Shows/${seriesID}/Episodes`,
         {
           params: {
@@ -439,7 +462,7 @@ class JellyfinAPI extends ExternalAPI {
 
       return episodeResponse.Items.filter(
         (item: JellyfinLibraryItem) => item.LocationType !== 'Virtual'
-      );
+      ) as EpisodeReturn<T>;
     } catch (e) {
       logger.error(
         `Something went wrong while getting the list of episodes from the Jellyfin server: ${e.message}`,
@@ -453,10 +476,10 @@ class JellyfinAPI extends ExternalAPI {
   public async createApiToken(appName: string): Promise<string> {
     try {
       await this.post(`/Auth/Keys?App=${appName}`);
-      const apiKeys = await this.get<any>(`/Auth/Keys`);
+      const apiKeys = await this.get<JellyfinApiKeysResponse>(`/Auth/Keys`);
       return apiKeys.Items.reverse().find(
-        (item: any) => item.AppName === appName
-      ).AccessToken;
+        (item: JellyfinApiKey) => item.AppName === appName
+      )!.AccessToken;
     } catch (e) {
       logger.error(
         `Something went wrong while creating an API key from the Jellyfin server: ${e.message}`,

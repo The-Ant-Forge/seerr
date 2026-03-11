@@ -40,9 +40,10 @@ router.get('/', async (req, res, next) => {
         req.query.includeIds ? req.query.includeIds.toString().split(',') : []
       ),
     ];
-    const pageSize = req.query.take
-      ? Number(req.query.take)
-      : Math.max(10, includeIds.length);
+    const pageSize = Math.min(
+      req.query.take ? Number(req.query.take) : Math.max(10, includeIds.length),
+      1000
+    );
     const skip = req.query.skip ? Number(req.query.skip) : 0;
     const q = req.query.q ? req.query.q.toString().toLowerCase() : '';
     let query = getRepository(User).createQueryBuilder('user');
@@ -378,7 +379,7 @@ router.use('/:id/settings', userSettingsRoutes);
 router.get<{ id: string }, UserRequestsResponse>(
   '/:id/requests',
   async (req, res, next) => {
-    const pageSize = req.query.take ? Number(req.query.take) : 20;
+    const pageSize = Math.min(Number(req.query.take) || 20, 100);
     const skip = req.query.skip ? Number(req.query.skip) : 0;
 
     try {

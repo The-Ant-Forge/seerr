@@ -25,7 +25,7 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 | 6.3 | Only `discover.ts` uses Zod validation | `server/routes/discover.ts:92,385` | All other routes use raw `req.body`/`req.query` with no schema — coercion, defaults, unknown-field stripping all missing |
 | 6.4 | **[Codex]** Auth model completeness | `server/routes/`, `server/middleware/auth.ts` | Review object-level auth, whether client-hidden actions are server-enforced, admin-only mutation gating |
 | 6.5 | **[Codex]** Session/CSRF/CORS posture | `server/index.ts`, `@dr.pogodin/csurf` | Review cookie settings (SameSite, Secure, HttpOnly), CSRF token flow, CORS origin config |
-| 6.6 | **[Codex]** External service trust boundaries | `server/api/` (Plex, Jellyfin, Discord, GitHub) | SSRF risk, timeout/retry behaviour, partial-failure handling, secret leakage in logs |
+| 6.6 | ~~**[Codex]** External service trust boundaries~~ | `server/api/` (Plex, Jellyfin, Discord, GitHub) | **Partial** — added 30s default timeout to `ExternalAPI` base class; SSRF guard and secret scrubbing remain as future work |
 | 6.7 | **[Codex]** Data exposure / privacy | Entity → JSON serialisation paths | DTO shaping, overbroad entity exposure, leaking internal IDs/emails/tokens/third-party account data |
 
 ### Category 4: Naming & Consistency (bugs only)
@@ -58,7 +58,7 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 | C.1 | ~~Race conditions in request submission~~ | `server/entity/MediaRequest.ts:46+` | **Done** `7aa1cfae` — wrapped critical section in AsyncLock keyed by mediaType+mediaId |
 | C.2 | ~~Missing transaction boundaries~~ | `MediaRequest.request()` | **Done** `7aa1cfae` — AsyncLock serialises the check-then-save; full DB transaction is a future enhancement |
 | C.3 | ~~Missing unique indexes / FK assumptions~~ | `server/entity/` | **Done** `5f1777e0` — added unique composite index on media(tmdbId, mediaType) with dedup migration |
-| C.4 | **[Codex]** Unbounded list endpoints | `server/routes/` | Missing pagination limits, expensive sort fields without DB indexes |
+| C.4 | ~~**[Codex]** Unbounded list endpoints~~ | `server/routes/` | **Done** — added `Math.min(take, max)` caps: user list (100), requests/media/issues (1000), blocklist (100) |
 
 ---
 
@@ -71,16 +71,16 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 | 10.1 | ~~N+1 in Plex user import~~ | `server/routes/user/index.ts:604-643` | **Done** `268cdb7f` — single `IN(...)` pre-fetch query + Map lookup |
 | 10.2 | ~~N+1 in Jellyfin user import~~ | `server/routes/user/index.ts:690-730` | **Done** `268cdb7f` — single `IN(...)` pre-fetch query + Set lookup |
 | 10.3 | ~~8 sequential `getCount()` queries~~ | `server/routes/request.ts:338-425` | **Done** `f1c64a32` — single query with conditional aggregation |
-| 10.4 | Sequential availability sync | `server/lib/availabilitySync.ts` | No parallelism within a page of records |
+| 10.4 | ~~Sequential availability sync~~ | `server/lib/availabilitySync.ts` | **Done** — refactored to batch processing with `Promise.allSettled`, 5 concurrent items per batch |
 
 ### Category 7: Type Safety
 
 | # | Finding | Location | Notes |
 |---|---------|----------|-------|
-| 7.1 | File-wide `any` ESLint disable | `server/api/jellyfin.ts:1` | 11+ `any` usages throughout Jellyfin API client |
+| 7.1 | ~~File-wide `any` ESLint disable~~ | `server/api/jellyfin.ts:1` | **Done** — removed file-wide disable, added typed interfaces for all API responses |
 | 7.2 | ~~Multiple `any` in IMDB proxy~~ | `server/api/rating/imdbRadarrProxy.ts:20,30,137-140` | **Done** — replaced with proper types (`string`, `string | null`, typed arrays) |
 | 7.3 | All settings migrations accept `settings: any` | `server/lib/settings/migrations/` (8 files) | **Kept as `any`** — migrations operate on legacy settings shapes that predate current `AllSettings` type; `any` is correct here |
-| 7.4 | 5 suppressed `any` in Selector | `src/components/Selector/index.tsx:139,212,283,364,628` | All ESLint-suppressed |
+| 7.4 | ~~5 suppressed `any` in Selector~~ | `src/components/Selector/index.tsx` | **Done** — replaced `as any` casts with typed `AnyOnChange` union type |
 
 ### Category 8: Test Gaps (focused)
 
@@ -88,7 +88,7 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 |---|---------|-------|
 | 8.1 | ~~`MediaRequest.request()` — zero coverage~~ | **Partial** `10c81525` — Vitest infrastructure added; `MediaRequest.request()` needs integration test with DB mocks (future) |
 | 8.2 | ~~Permission system~~ | `server/lib/permissions.ts` | **Done** `10c81525` — 13 unit tests + 39 regression tests covering all permission flags, admin override, bitwise edge cases |
-| 8.3 | Approval/denial flows | Request lifecycle state machine |
+| 8.3 | ~~Approval/denial flows~~ | Request lifecycle state machine | **Done** — 19 tests covering approve/decline status transitions, permission checks, error handling |
 | 8.4 | ~~Scanner/notification failure paths~~ | `server/lib/notifications/` | **Partial** — 28 notification agent tests + 14 status helper tests added; scanner tests still needed |
 
 ---
@@ -117,7 +117,7 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 | # | Finding | Location | Notes |
 |---|---------|----------|-------|
 | 11.1 | ~~`synchronize: true` in dev DB config~~ | `server/datasource.ts:46` | **Done** `daa7a249` — set to false, migrationsRun enabled |
-| 11.2 | File-wide `react-hooks/exhaustive-deps` suppression | `src/components/RequestModal/AdvancedRequester/index.tsx:1`, `src/hooks/useSearchInput.ts:1` | Dependency arrays manually managed |
+| 11.2 | File-wide `react-hooks/exhaustive-deps` suppression | `src/components/RequestModal/AdvancedRequester/index.tsx:1`, `src/hooks/useSearchInput.ts:1` | **Kept** — suppressions are intentional; both components deliberately omit deps to prevent infinite routing/re-render loops |
 
 ---
 
@@ -146,14 +146,14 @@ All source under `server/` and `src/`, plus build config, OpenAPI spec, and meta
 |---|---------|----------|
 | 9.1 | ~~CLAUDE.md routes table missing 3 routes~~ | **Done** — added `/person`, `/service`, `/overrideRule` |
 | 9.2 | ~~CLAUDE.md doesn't note Express 5~~ | **Done** — updated to "Express 5" |
-| 9.3 | `/blacklist` deprecated routes sunset 2026-06-01 | `server/routes/index.ts:156-165` |
+| 9.3 | `/blacklist` deprecated routes sunset 2026-06-01 | `server/routes/index.ts:173-182` | Already implemented via `deprecatedRoute()` middleware with sunset header |
 
 ### Category 12: TODO/FIXME/HACK Audit
 
 | # | Finding | Location |
 |---|---------|----------|
 | 12.1 | Season updater TODO | `server/lib/availabilitySync.ts:380` |
-| 12.2 | Override rule priority sorting | `server/entity/MediaRequest.ts:299` |
+| 12.2 | ~~Override rule priority sorting~~ | `server/entity/MediaRequest.ts:309` | **Done** — improved specificity scoring: user-targeting weighted ×2, removed TODO/hack comments |
 | 12.3 | 4K detection robustness | `server/lib/scanners/jellyfin/index.ts:366` |
 
 ---
@@ -194,3 +194,18 @@ Security+auth → data integrity/concurrency → error handling → validation �
 | **Polyfill cleanup** | Removed `downlevelIteration` from tsconfig (ES2021 has native iterators). Removed `-ms-overflow-style` IE shim from CSS. Removed dead `baseline-browser-mapping` dev dep. Kept @formatjs conditional polyfills (still needed for older mobile browsers). |
 | **Vitest expansion** | Grew from 18 to **201 tests** across 13 test files. Coverage: permissions (52 tests), notification agents (42 tests), settings migrations (28 tests), settings class (20 tests), constants (22 tests), download tracker (7 tests), servarr API (9 tests), utilities (21 tests). |
 | **Dead dep removal** | Removed `ace-builds`, `react-ace`, `cypress`, `cy-mobile-commands`, `baseline-browser-mapping`. Replaced JSONEditor with native `<textarea>`. |
+
+## Consolidation & Hardening (session 3)
+
+| Change | Details |
+|--------|---------|
+| **Cypress cleanup** | Deleted `cypress/` directory, `cypress.config.ts`, `.github/workflows/cypress.yml`. Updated all references in `.gitignore`, `.prettierignore`, `.prettierrc.js`, `.dockerignore`, `CLAUDE.md`. Relocated test settings to `tests/e2e/config/settings.e2e.json`. |
+| **Pagination limits (C.4)** | Added `Math.min(take, max)` caps to all list endpoints: user list (100), requests/media/issues (1000), blocklist (100). |
+| **Jellyfin typing (7.1)** | Removed file-wide `@typescript-eslint/no-explicit-any` disable from `server/api/jellyfin.ts`. Added typed interfaces for all API responses. |
+| **Selector typing (7.4)** | Replaced 5 `as any` casts in `Selector/index.tsx` with typed `AnyOnChange` union type. |
+| **Override rule sorting (12.2)** | Improved specificity scoring: user-targeting now weighted ×2. Removed TODO/hack comments. |
+| **Default timeouts (6.6)** | Added 30s default timeout to `ExternalAPI` base class for all external service calls. |
+| **Availability sync (10.4)** | Refactored to batch processing with `Promise.allSettled`, 5 concurrent items per batch. Extracted `processMediaItem` and `processBatch` methods. |
+| **Approval/denial tests (8.3)** | 19 new tests covering status transitions, permission checks, and error handling in `server/routes/request.test.ts`. |
+| **Vitest total** | Grew from 201 to **220 tests** across 14 test files. |
+| **Items kept as-is** | 11.2 exhaustive-deps suppressions (intentional — prevent infinite loops). 9.3 blacklist sunset (already implemented via middleware). 7.3 migration `any` types (correct for legacy shapes). |

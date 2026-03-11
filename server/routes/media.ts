@@ -24,7 +24,7 @@ const mediaRoutes = Router();
 mediaRoutes.get('/', async (req, res, next) => {
   const mediaRepository = getRepository(Media);
 
-  const pageSize = req.query.take ? Number(req.query.take) : 20;
+  const pageSize = Math.min(Number(req.query.take) || 20, 1000);
   const skip = req.query.skip ? Number(req.query.skip) : 0;
 
   let statusFilter = undefined;

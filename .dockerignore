@@ -16,7 +16,7 @@ charts
 config/db/*
 config/logs/*
 config/*.json
-cypress
+tests
 dist
 Dockerfile*
 compose.yaml

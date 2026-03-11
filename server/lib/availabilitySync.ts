@@ -44,6 +44,7 @@ class AvailabilitySync {
         label: 'Availability Sync',
       });
       const pageSize = 50;
+      const concurrency = 5;
 
       const userRepository = getRepository(User);
 
@@ -113,290 +114,24 @@ class AvailabilitySync {
           return;
       }
 
+      const batch: Media[] = [];
+
       for await (const media of this.loadAvailableMediaPaginated(pageSize)) {
         if (!this.running) {
           throw new Error('Job aborted');
         }
 
-        // Check plex, radarr, and sonarr for that specific media and
-        // if unavailable, then we change the status accordingly.
-        // If a non-4k or 4k version exists in at least one of the instances, we will only update that specific version
-        if (media.mediaType === 'movie') {
-          let movieExists = false;
-          let movieExists4k = false;
+        batch.push(media);
 
-          // if (mediaServerType === MediaServerType.PLEX) {
-          //   await this.mediaExistsInPlex(media, false);
-          // } else if (
-          //   mediaServerType === MediaServerType.JELLYFIN ||
-          //   mediaServerType === MediaServerType.EMBY
-          // ) {
-          //   await this.mediaExistsInJellyfin(media, false);
-          // }
-
-          const existsInRadarr = await this.mediaExistsInRadarr(media, false);
-          const existsInRadarr4k = await this.mediaExistsInRadarr(media, true);
-
-          // plex
-          if (mediaServerType === MediaServerType.PLEX) {
-            const { existsInPlex } = await this.mediaExistsInPlex(media, false);
-            const { existsInPlex: existsInPlex4k } =
-              await this.mediaExistsInPlex(media, true);
-
-            if (existsInPlex || existsInRadarr) {
-              movieExists = true;
-              logger.info(
-                `The non-4K movie [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
-                {
-                  label: 'AvailabilitySync',
-                }
-              );
-            }
-
-            if (existsInPlex4k || existsInRadarr4k) {
-              movieExists4k = true;
-              logger.info(
-                `The 4K movie [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
-                {
-                  label: 'AvailabilitySync',
-                }
-              );
-            }
-          }
-
-          //jellyfin
-          if (
-            mediaServerType === MediaServerType.JELLYFIN ||
-            mediaServerType === MediaServerType.EMBY
-          ) {
-            const { existsInJellyfin } = await this.mediaExistsInJellyfin(
-              media,
-              false
-            );
-            const { existsInJellyfin: existsInJellyfin4k } =
-              await this.mediaExistsInJellyfin(media, true);
-
-            if (existsInJellyfin || existsInRadarr) {
-              movieExists = true;
-              logger.info(
-                `The non-4K movie [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
-                {
-                  label: 'AvailabilitySync',
-                }
-              );
-            }
-
-            if (existsInJellyfin4k || existsInRadarr4k) {
-              movieExists4k = true;
-              logger.info(
-                `The 4K movie [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
-                {
-                  label: 'AvailabilitySync',
-                }
-              );
-            }
-          }
-
-          if (!movieExists && media.status === MediaStatus.AVAILABLE) {
-            await this.mediaUpdater(media, false, mediaServerType);
-          }
-
-          if (!movieExists4k && media.status4k === MediaStatus.AVAILABLE) {
-            await this.mediaUpdater(media, true, mediaServerType);
-          }
+        if (batch.length >= concurrency) {
+          await this.processBatch(batch, mediaServerType);
+          batch.length = 0;
         }
+      }
 
-        // If both versions still exist in plex, we still need
-        // to check through sonarr to verify season availability
-        if (media.mediaType === 'tv') {
-          let showExists = false;
-          let showExists4k = false;
-
-          //plex
-
-          const { existsInPlex, seasonsMap: plexSeasonsMap = new Map() } =
-            await this.mediaExistsInPlex(media, false);
-          const {
-            existsInPlex: existsInPlex4k,
-            seasonsMap: plexSeasonsMap4k = new Map(),
-          } = await this.mediaExistsInPlex(media, true);
-
-          //jellyfin
-          const {
-            existsInJellyfin,
-            seasonsMap: jellyfinSeasonsMap = new Map(),
-          } = await this.mediaExistsInJellyfin(media, false);
-          const {
-            existsInJellyfin: existsInJellyfin4k,
-            seasonsMap: jellyfinSeasonsMap4k = new Map(),
-          } = await this.mediaExistsInJellyfin(media, true);
-
-          const { existsInSonarr, seasonsMap: sonarrSeasonsMap } =
-            await this.mediaExistsInSonarr(media, false);
-          const {
-            existsInSonarr: existsInSonarr4k,
-            seasonsMap: sonarrSeasonsMap4k,
-          } = await this.mediaExistsInSonarr(media, true);
-
-          //plex
-          if (mediaServerType === MediaServerType.PLEX) {
-            if (existsInPlex || existsInSonarr) {
-              showExists = true;
-              logger.info(
-                `The non-4K show [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
-                {
-                  label: 'AvailabilitySync',
-                }
-              );
-            }
-          }
-
-          if (mediaServerType === MediaServerType.PLEX) {
-            if (existsInPlex4k || existsInSonarr4k) {
-              showExists4k = true;
-              logger.info(
-                `The 4K show [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
-                {
-                  label: 'AvailabilitySync',
-                }
-              );
-            }
-          }
-
-          //jellyfin
-          if (
-            mediaServerType === MediaServerType.JELLYFIN ||
-            mediaServerType === MediaServerType.EMBY
-          ) {
-            if (existsInJellyfin || existsInSonarr) {
-              showExists = true;
-              logger.info(
-                `The non-4K show [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
-                {
-                  label: 'AvailabilitySync',
-                }
-              );
-            }
-          }
-
-          if (
-            mediaServerType === MediaServerType.JELLYFIN ||
-            mediaServerType === MediaServerType.EMBY
-          ) {
-            if (existsInJellyfin4k || existsInSonarr4k) {
-              showExists4k = true;
-              logger.info(
-                `The 4K show [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
-                {
-                  label: 'AvailabilitySync',
-                }
-              );
-            }
-          }
-
-          // Here we will create a final map that will cross compare
-          // with plex and sonarr. Filtered seasons will go through
-          // each season and assume the season does not exist. If Plex or
-          // Sonarr finds that season, we will change the final seasons value
-          // to true.
-          const filteredSeasonsMap: Map<number, boolean> = new Map();
-          media.seasons
-            .filter(
-              (season) =>
-                season.status === MediaStatus.AVAILABLE ||
-                season.status === MediaStatus.PARTIALLY_AVAILABLE
-            )
-            .forEach((season) =>
-              filteredSeasonsMap.set(season.seasonNumber, false)
-            );
-
-          const filteredSeasonsMap4k: Map<number, boolean> = new Map();
-          media.seasons
-            .filter(
-              (season) =>
-                season.status4k === MediaStatus.AVAILABLE ||
-                season.status4k === MediaStatus.PARTIALLY_AVAILABLE
-            )
-            .forEach((season) =>
-              filteredSeasonsMap4k.set(season.seasonNumber, false)
-            );
-
-          let finalSeasons: Map<number, boolean>;
-          let finalSeasons4k: Map<number, boolean>;
-
-          if (mediaServerType === MediaServerType.PLEX) {
-            finalSeasons = new Map([
-              ...filteredSeasonsMap,
-              ...plexSeasonsMap,
-              ...sonarrSeasonsMap,
-            ]);
-            finalSeasons4k = new Map([
-              ...filteredSeasonsMap4k,
-              ...plexSeasonsMap4k,
-              ...sonarrSeasonsMap4k,
-            ]);
-          } else {
-            // Jellyfin/Emby
-            finalSeasons = new Map([
-              ...filteredSeasonsMap,
-              ...jellyfinSeasonsMap,
-              ...sonarrSeasonsMap,
-            ]);
-            finalSeasons4k = new Map([
-              ...filteredSeasonsMap4k,
-              ...jellyfinSeasonsMap4k,
-              ...sonarrSeasonsMap4k,
-            ]);
-          }
-
-          if (
-            !showExists &&
-            (media.status === MediaStatus.AVAILABLE ||
-              media.status === MediaStatus.PARTIALLY_AVAILABLE ||
-              media.seasons.some(
-                (season) => season.status === MediaStatus.AVAILABLE
-              ) ||
-              media.seasons.some(
-                (season) => season.status === MediaStatus.PARTIALLY_AVAILABLE
-              ))
-          ) {
-            await this.mediaUpdater(media, false, mediaServerType);
-          }
-
-          if (
-            !showExists4k &&
-            (media.status4k === MediaStatus.AVAILABLE ||
-              media.status4k === MediaStatus.PARTIALLY_AVAILABLE ||
-              media.seasons.some(
-                (season) => season.status4k === MediaStatus.AVAILABLE
-              ) ||
-              media.seasons.some(
-                (season) => season.status4k === MediaStatus.PARTIALLY_AVAILABLE
-              ))
-          ) {
-            await this.mediaUpdater(media, true, mediaServerType);
-          }
-
-          // TODO: Figure out how to run seasonUpdater for each season
-
-          if ([...finalSeasons.values()].includes(false)) {
-            await this.seasonUpdater(
-              media,
-              finalSeasons,
-              false,
-              mediaServerType
-            );
-          }
-
-          if ([...finalSeasons4k.values()].includes(false)) {
-            await this.seasonUpdater(
-              media,
-              finalSeasons4k,
-              true,
-              mediaServerType
-            );
-          }
-        }
+      // Process any remaining items in the final partial batch
+      if (batch.length > 0) {
+        await this.processBatch(batch, mediaServerType);
       }
     } catch (ex) {
       logger.error('Failed to complete availability sync.', {
@@ -413,6 +148,294 @@ class AvailabilitySync {
 
   public cancel() {
     this.running = false;
+  }
+
+  private async processBatch(
+    batch: Media[],
+    mediaServerType: MediaServerType
+  ): Promise<void> {
+    const results = await Promise.allSettled(
+      batch.map((media) => this.processMediaItem(media, mediaServerType))
+    );
+
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      if (result.status === 'rejected') {
+        logger.error(
+          `Failed to process media item [TMDB ID ${batch[i].tmdbId}].`,
+          {
+            errorMessage: result.reason?.message ?? String(result.reason),
+            label: 'Availability Sync',
+          }
+        );
+      }
+    }
+  }
+
+  private async processMediaItem(
+    media: Media,
+    mediaServerType: MediaServerType
+  ): Promise<void> {
+    // Check plex, radarr, and sonarr for that specific media and
+    // if unavailable, then we change the status accordingly.
+    // If a non-4k or 4k version exists in at least one of the instances, we will only update that specific version
+    if (media.mediaType === 'movie') {
+      let movieExists = false;
+      let movieExists4k = false;
+
+      const existsInRadarr = await this.mediaExistsInRadarr(media, false);
+      const existsInRadarr4k = await this.mediaExistsInRadarr(media, true);
+
+      // plex
+      if (mediaServerType === MediaServerType.PLEX) {
+        const { existsInPlex } = await this.mediaExistsInPlex(media, false);
+        const { existsInPlex: existsInPlex4k } = await this.mediaExistsInPlex(
+          media,
+          true
+        );
+
+        if (existsInPlex || existsInRadarr) {
+          movieExists = true;
+          logger.info(
+            `The non-4K movie [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
+            {
+              label: 'AvailabilitySync',
+            }
+          );
+        }
+
+        if (existsInPlex4k || existsInRadarr4k) {
+          movieExists4k = true;
+          logger.info(
+            `The 4K movie [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
+            {
+              label: 'AvailabilitySync',
+            }
+          );
+        }
+      }
+
+      //jellyfin
+      if (
+        mediaServerType === MediaServerType.JELLYFIN ||
+        mediaServerType === MediaServerType.EMBY
+      ) {
+        const { existsInJellyfin } = await this.mediaExistsInJellyfin(
+          media,
+          false
+        );
+        const { existsInJellyfin: existsInJellyfin4k } =
+          await this.mediaExistsInJellyfin(media, true);
+
+        if (existsInJellyfin || existsInRadarr) {
+          movieExists = true;
+          logger.info(
+            `The non-4K movie [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
+            {
+              label: 'AvailabilitySync',
+            }
+          );
+        }
+
+        if (existsInJellyfin4k || existsInRadarr4k) {
+          movieExists4k = true;
+          logger.info(
+            `The 4K movie [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
+            {
+              label: 'AvailabilitySync',
+            }
+          );
+        }
+      }
+
+      if (!movieExists && media.status === MediaStatus.AVAILABLE) {
+        await this.mediaUpdater(media, false, mediaServerType);
+      }
+
+      if (!movieExists4k && media.status4k === MediaStatus.AVAILABLE) {
+        await this.mediaUpdater(media, true, mediaServerType);
+      }
+    }
+
+    // If both versions still exist in plex, we still need
+    // to check through sonarr to verify season availability
+    if (media.mediaType === 'tv') {
+      let showExists = false;
+      let showExists4k = false;
+
+      //plex
+
+      const { existsInPlex, seasonsMap: plexSeasonsMap = new Map() } =
+        await this.mediaExistsInPlex(media, false);
+      const {
+        existsInPlex: existsInPlex4k,
+        seasonsMap: plexSeasonsMap4k = new Map(),
+      } = await this.mediaExistsInPlex(media, true);
+
+      //jellyfin
+      const { existsInJellyfin, seasonsMap: jellyfinSeasonsMap = new Map() } =
+        await this.mediaExistsInJellyfin(media, false);
+      const {
+        existsInJellyfin: existsInJellyfin4k,
+        seasonsMap: jellyfinSeasonsMap4k = new Map(),
+      } = await this.mediaExistsInJellyfin(media, true);
+
+      const { existsInSonarr, seasonsMap: sonarrSeasonsMap } =
+        await this.mediaExistsInSonarr(media, false);
+      const {
+        existsInSonarr: existsInSonarr4k,
+        seasonsMap: sonarrSeasonsMap4k,
+      } = await this.mediaExistsInSonarr(media, true);
+
+      //plex
+      if (mediaServerType === MediaServerType.PLEX) {
+        if (existsInPlex || existsInSonarr) {
+          showExists = true;
+          logger.info(
+            `The non-4K show [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
+            {
+              label: 'AvailabilitySync',
+            }
+          );
+        }
+      }
+
+      if (mediaServerType === MediaServerType.PLEX) {
+        if (existsInPlex4k || existsInSonarr4k) {
+          showExists4k = true;
+          logger.info(
+            `The 4K show [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
+            {
+              label: 'AvailabilitySync',
+            }
+          );
+        }
+      }
+
+      //jellyfin
+      if (
+        mediaServerType === MediaServerType.JELLYFIN ||
+        mediaServerType === MediaServerType.EMBY
+      ) {
+        if (existsInJellyfin || existsInSonarr) {
+          showExists = true;
+          logger.info(
+            `The non-4K show [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
+            {
+              label: 'AvailabilitySync',
+            }
+          );
+        }
+      }
+
+      if (
+        mediaServerType === MediaServerType.JELLYFIN ||
+        mediaServerType === MediaServerType.EMBY
+      ) {
+        if (existsInJellyfin4k || existsInSonarr4k) {
+          showExists4k = true;
+          logger.info(
+            `The 4K show [TMDB ID ${media.tmdbId}] still exists. Preventing removal.`,
+            {
+              label: 'AvailabilitySync',
+            }
+          );
+        }
+      }
+
+      // Here we will create a final map that will cross compare
+      // with plex and sonarr. Filtered seasons will go through
+      // each season and assume the season does not exist. If Plex or
+      // Sonarr finds that season, we will change the final seasons value
+      // to true.
+      const filteredSeasonsMap: Map<number, boolean> = new Map();
+      media.seasons
+        .filter(
+          (season) =>
+            season.status === MediaStatus.AVAILABLE ||
+            season.status === MediaStatus.PARTIALLY_AVAILABLE
+        )
+        .forEach((season) =>
+          filteredSeasonsMap.set(season.seasonNumber, false)
+        );
+
+      const filteredSeasonsMap4k: Map<number, boolean> = new Map();
+      media.seasons
+        .filter(
+          (season) =>
+            season.status4k === MediaStatus.AVAILABLE ||
+            season.status4k === MediaStatus.PARTIALLY_AVAILABLE
+        )
+        .forEach((season) =>
+          filteredSeasonsMap4k.set(season.seasonNumber, false)
+        );
+
+      let finalSeasons: Map<number, boolean>;
+      let finalSeasons4k: Map<number, boolean>;
+
+      if (mediaServerType === MediaServerType.PLEX) {
+        finalSeasons = new Map([
+          ...filteredSeasonsMap,
+          ...plexSeasonsMap,
+          ...sonarrSeasonsMap,
+        ]);
+        finalSeasons4k = new Map([
+          ...filteredSeasonsMap4k,
+          ...plexSeasonsMap4k,
+          ...sonarrSeasonsMap4k,
+        ]);
+      } else {
+        // Jellyfin/Emby
+        finalSeasons = new Map([
+          ...filteredSeasonsMap,
+          ...jellyfinSeasonsMap,
+          ...sonarrSeasonsMap,
+        ]);
+        finalSeasons4k = new Map([
+          ...filteredSeasonsMap4k,
+          ...jellyfinSeasonsMap4k,
+          ...sonarrSeasonsMap4k,
+        ]);
+      }
+
+      if (
+        !showExists &&
+        (media.status === MediaStatus.AVAILABLE ||
+          media.status === MediaStatus.PARTIALLY_AVAILABLE ||
+          media.seasons.some(
+            (season) => season.status === MediaStatus.AVAILABLE
+          ) ||
+          media.seasons.some(
+            (season) => season.status === MediaStatus.PARTIALLY_AVAILABLE
+          ))
+      ) {
+        await this.mediaUpdater(media, false, mediaServerType);
+      }
+
+      if (
+        !showExists4k &&
+        (media.status4k === MediaStatus.AVAILABLE ||
+          media.status4k === MediaStatus.PARTIALLY_AVAILABLE ||
+          media.seasons.some(
+            (season) => season.status4k === MediaStatus.AVAILABLE
+          ) ||
+          media.seasons.some(
+            (season) => season.status4k === MediaStatus.PARTIALLY_AVAILABLE
+          ))
+      ) {
+        await this.mediaUpdater(media, true, mediaServerType);
+      }
+
+      // TODO: Figure out how to run seasonUpdater for each season
+
+      if ([...finalSeasons.values()].includes(false)) {
+        await this.seasonUpdater(media, finalSeasons, false, mediaServerType);
+      }
+
+      if ([...finalSeasons4k.values()].includes(false)) {
+        await this.seasonUpdater(media, finalSeasons4k, true, mediaServerType);
+      }
+    }
   }
 
   private async *loadAvailableMediaPaginated(pageSize: number) {
@@ -965,7 +988,10 @@ class AvailabilitySync {
   private async mediaExistsInJellyfin(
     media: Media,
     is4k: boolean
-  ): Promise<{ existsInJellyfin: boolean; seasonsMap?: Map<number, boolean> }> {
+  ): Promise<{
+    existsInJellyfin: boolean;
+    seasonsMap?: Map<number, boolean>;
+  }> {
     const ratingKey = media.jellyfinMediaId;
     const ratingKey4k = media.jellyfinMediaId4k;
     let existsInJellyfin = false;

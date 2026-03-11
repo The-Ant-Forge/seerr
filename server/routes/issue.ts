@@ -22,7 +22,7 @@ issueRoutes.get<Record<string, string>, IssueResultsResponse>(
     { type: 'or' }
   ),
   async (req, res, next) => {
-    const pageSize = req.query.take ? Number(req.query.take) : 10;
+    const pageSize = Math.min(Number(req.query.take) || 10, 1000);
     const skip = req.query.skip ? Number(req.query.skip) : 0;
     const createdBy = req.query.createdBy ? Number(req.query.createdBy) : null;
 

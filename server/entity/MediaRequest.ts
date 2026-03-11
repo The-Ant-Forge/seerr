@@ -304,20 +304,21 @@ export class MediaRequest {
           return true;
         });
 
-        // hacky way to prioritize rules
-        // TODO: make this better
+        // Prioritise rules by specificity: rules with more non-null condition
+        // fields are more specific and take precedence. User-targeting is
+        // weighted highest (×2) since it narrows to specific people.
         const prioritizedRule = appliedOverrideRules.sort((a, b) => {
-          const keys: (keyof OverrideRule)[] = [
+          const conditionKeys: (keyof OverrideRule)[] = [
             'genre',
             'language',
             'keywords',
           ];
 
-          const aSpecificity = keys.filter((key) => a[key] !== null).length;
-          const bSpecificity = keys.filter((key) => b[key] !== null).length;
+          const specificity = (rule: OverrideRule) =>
+            conditionKeys.filter((key) => rule[key] !== null).length +
+            (rule.users ? 2 : 0);
 
-          // Take the rule with the most specific condition first
-          return bSpecificity - aSpecificity;
+          return specificity(b) - specificity(a);
         })[0];
 
         if (prioritizedRule) {

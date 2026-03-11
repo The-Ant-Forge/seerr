@@ -22,7 +22,7 @@ module.exports = {
       },
     },
     {
-      files: 'cypress/config/settings.cypress.json',
+      files: 'tests/e2e/config/settings.e2e.json',
       options: {
         rangeEnd: 0,
       },

@@ -4,7 +4,7 @@ dist/
 config/
 cache/config.json
 pnpm-lock.yaml
-cypress/config/settings.cypress.json
+tests/e2e/config/settings.e2e.json
 .github
 .vscode
 

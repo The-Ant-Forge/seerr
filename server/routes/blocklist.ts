@@ -20,7 +20,7 @@ export const blocklistAdd = z.object({
 });
 
 const blocklistGet = z.object({
-  take: z.coerce.number().int().positive().default(25),
+  take: z.coerce.number().int().positive().max(1000).default(25),
   skip: z.coerce.number().int().nonnegative().default(0),
   search: z.string().optional(),
   filter: z.enum(['all', 'manual', 'blocklistedTags']).optional(),

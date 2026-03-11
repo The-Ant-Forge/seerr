@@ -33,7 +33,7 @@ requestRoutes.get<Record<string, unknown>, RequestResultsResponse>(
   '/',
   async (req, res, next) => {
     try {
-      const pageSize = req.query.take ? Number(req.query.take) : 10;
+      const pageSize = Math.min(Number(req.query.take) || 10, 1000);
       const skip = req.query.skip ? Number(req.query.skip) : 0;
       const requestedBy = req.query.requestedBy
         ? Number(req.query.requestedBy)

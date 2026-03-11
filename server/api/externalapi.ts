@@ -10,6 +10,9 @@ const DEFAULT_TTL = 300;
 // 10 seconds default rolling buffer (in ms)
 const DEFAULT_ROLLING_BUFFER = 10000;
 
+// 30 seconds default request timeout (in ms)
+const DEFAULT_TIMEOUT = 30000;
+
 export interface ExternalAPIOptions {
   nodeCache?: NodeCache;
   headers?: Record<string, unknown>;
@@ -33,7 +36,7 @@ class ExternalAPI {
     this.axios = axios.create({
       baseURL: baseUrl,
       params,
-      timeout: options.timeout,
+      timeout: options.timeout ?? DEFAULT_TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',

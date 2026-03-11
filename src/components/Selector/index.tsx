@@ -26,6 +26,10 @@ import type { MultiValue, SingleValue } from 'react-select';
 import AsyncSelect from 'react-select/async';
 import useSWR from 'swr';
 
+type AnyOnChange = (
+  value: MultiValue<SingleVal> | SingleValue<SingleVal> | null
+) => void;
+
 const messages = defineMessages('components.Selector', {
   searchKeywords: 'Search keywords…',
   searchGenres: 'Select genres…',
@@ -136,8 +140,7 @@ export const CompanySelector = ({
       loadOptions={loadCompanyOptions}
       placeholder={intl.formatMessage(messages.searchStudios)}
       onChange={(value) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onChange(value as any);
+        (onChange as AnyOnChange)(value);
       }}
     />
   );
@@ -209,8 +212,7 @@ export const GenreSelector = ({
       loadOptions={loadGenreOptions}
       placeholder={intl.formatMessage(messages.searchGenres)}
       onChange={(value) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onChange(value as any);
+        (onChange as AnyOnChange)(value);
       }}
     />
   );
@@ -280,8 +282,7 @@ export const StatusSelector = ({
       loadOptions={loadStatusOptions}
       placeholder={intl.formatMessage(messages.searchStatus)}
       onChange={(value) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onChange(value as any);
+        (onChange as AnyOnChange)(value);
       }}
     />
   );
@@ -361,8 +362,7 @@ export const KeywordSelector = ({
       loadOptions={loadKeywordOptions}
       placeholder={intl.formatMessage(messages.searchKeywords)}
       onChange={(value) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onChange(value as any);
+        (onChange as AnyOnChange)(value);
       }}
     />
   );
@@ -625,8 +625,7 @@ export const UserSelector = ({
       loadOptions={loadUserOptions}
       placeholder={intl.formatMessage(messages.searchUsers)}
       onChange={(value) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onChange(value as any);
+        (onChange as AnyOnChange)(value);
       }}
     />
   );

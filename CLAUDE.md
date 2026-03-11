@@ -103,12 +103,16 @@ pnpm migration:run         # apply pending migrations
 ```
 
 ## Testing
-- **Framework**: Cypress (e2e)
+- **Unit tests**: Vitest (`pnpm test`)
+- **E2E tests**: Playwright (`pnpm test:e2e`)
 - **Base URL**: http://localhost:5055
 ```bash
-pnpm cypress:prepare       # prepare test database
-pnpm cypress:build         # build + prepare
-pnpm cypress:open          # open Cypress GUI
+pnpm test                  # run Vitest unit tests
+pnpm test:watch            # run Vitest in watch mode
+pnpm test:e2e              # run Playwright E2E tests
+pnpm test:e2e:ui           # open Playwright UI
+pnpm e2e:prepare           # prepare test database
+pnpm e2e:build             # build + prepare
 ```
 
 ## Localization

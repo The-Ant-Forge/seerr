@@ -1,14 +1,14 @@
 import { UserType } from '@server/constants/user';
 import dataSource, { getRepository } from '@server/datasource';
 import { User } from '@server/entity/User';
-import { copyFileSync } from 'fs';
 import { gravatarUrl } from '@server/utils/gravatar';
+import { copyFileSync } from 'fs';
 import path from 'path';
 
 const prepareDb = async () => {
   // Copy over test settings.json
   copyFileSync(
-    path.join(__dirname, '../../cypress/config/settings.cypress.json'),
+    path.join(__dirname, '../../tests/e2e/config/settings.e2e.json'),
     path.join(__dirname, '../../config/settings.json')
   );
 
