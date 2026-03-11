@@ -1,9 +1,9 @@
-import 'ace-builds/src-noconflict/ace';
-import 'ace-builds/src-noconflict/mode-json';
-import 'ace-builds/src-noconflict/theme-dracula';
-import type { HTMLAttributes } from 'react';
-import AceEditor from 'react-ace';
-interface JSONEditorProps extends HTMLAttributes<HTMLDivElement> {
+import type { TextareaHTMLAttributes } from 'react';
+
+interface JSONEditorProps extends Omit<
+  TextareaHTMLAttributes<HTMLTextAreaElement>,
+  'name'
+> {
   name: string;
   value: string;
   onUpdate: (value: string) => void;
@@ -12,16 +12,14 @@ interface JSONEditorProps extends HTMLAttributes<HTMLDivElement> {
 const JSONEditor = ({ name, value, onUpdate, onBlur }: JSONEditorProps) => {
   return (
     <div className="w-full overflow-hidden rounded-md">
-      <AceEditor
-        mode="json"
-        theme="dracula"
-        onChange={onUpdate}
+      <textarea
+        id={name}
         name={name}
-        editorProps={{ $blockScrolling: true }}
         value={value}
+        onChange={(e) => onUpdate(e.target.value)}
         onBlur={onBlur}
-        height="300px"
-        width="100%"
+        spellCheck={false}
+        className="h-[300px] w-full resize-y bg-gray-900 p-4 font-mono text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
       />
     </div>
   );
