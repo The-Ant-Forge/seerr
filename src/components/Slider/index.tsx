@@ -4,7 +4,6 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { debounce } from 'lodash';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useSpring } from 'react-spring';
 
 interface SliderProps {
   sliderKey: string;
@@ -80,16 +79,6 @@ const Slider = ({
     debouncedScroll();
   };
 
-  const [, setX] = useSpring(() => ({
-    from: { x: 0 },
-    to: { x: 0 },
-    onChange: (results) => {
-      if (containerRef.current) {
-        containerRef.current.scrollLeft = results.value.x;
-      }
-    },
-  }));
-
   const slide = (direction: Direction) => {
     const clientWidth =
       containerRef.current?.getBoundingClientRect().width ?? 0;
@@ -105,45 +94,13 @@ const Slider = ({
         scrollPosition - scrollOffset - visibleItems * cardWidth,
         0
       );
-      setX.start({
-        from: { x: scrollPosition },
-        to: { x: newX },
-        onChange: (results) => {
-          if (containerRef.current) {
-            containerRef.current.scrollLeft = results.value.x;
-          }
-        },
-        reset: true,
-        config: { friction: 60, tension: 500, velocity: 20 },
-      });
-
-      if (newX === 0) {
-        setScrollPos({ isStart: true, isEnd: false });
-      } else {
-        setScrollPos({ isStart: false, isEnd: false });
-      }
+      containerRef.current?.scrollTo({ left: newX, behavior: 'smooth' });
     } else if (direction === Direction.RIGHT) {
       const newX = Math.min(
         scrollPosition - scrollOffset + visibleItems * cardWidth,
         containerRef.current?.scrollWidth ?? 0 - clientWidth
       );
-      setX.start({
-        from: { x: scrollPosition },
-        to: { x: newX },
-        onChange: (results) => {
-          if (containerRef.current) {
-            containerRef.current.scrollLeft = results.value.x;
-          }
-        },
-        reset: true,
-        config: { friction: 60, tension: 500, velocity: 20 },
-      });
-
-      if (newX >= (containerRef.current?.scrollWidth ?? 0) - clientWidth) {
-        setScrollPos({ isStart: false, isEnd: true });
-      } else {
-        setScrollPos({ isStart: false, isEnd: false });
-      }
+      containerRef.current?.scrollTo({ left: newX, behavior: 'smooth' });
     }
   };
 

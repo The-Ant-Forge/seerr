@@ -167,6 +167,8 @@ app
       server.use(
         csurf({
           cookie: {
+            key: '_csrf',
+            path: '/',
             httpOnly: true,
             sameSite: true,
             secure: !dev,

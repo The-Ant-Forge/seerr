@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import type { Nullable } from '@app/utils/typeHelpers';
 import { useRouter } from 'next/router';
 import type { Dispatch, SetStateAction } from 'react';
 import { useEffect, useState } from 'react';
@@ -19,7 +18,7 @@ interface SearchObject {
 const useSearchInput = (): SearchObject => {
   const router = useRouter();
   const [searchOpen, setIsOpen] = useState(false);
-  const [lastRoute, setLastRoute] = useState<Nullable<Url>>(null);
+  const [lastRoute, setLastRoute] = useState<Url | null>(null);
   const [searchValue, debouncedValue, setSearchValue] = useDebouncedState(
     (router.query.query as string) ?? ''
   );
