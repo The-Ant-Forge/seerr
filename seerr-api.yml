@@ -3881,6 +3881,82 @@ paths:
       responses:
         '204':
           description: All sliders reset to defaults
+  /settings/backup:
+    get:
+      summary: Download backup
+      description: Downloads a ZIP snapshot of the Seerr configuration and database.
+      tags:
+        - settings
+      responses:
+        '200':
+          description: Backup ZIP file
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+  /settings/backup/restore:
+    post:
+      summary: Restore from backup
+      description: Uploads a backup ZIP to restore settings and database. Seerr will restart after a successful restore.
+      tags:
+        - settings
+      requestBody:
+        required: true
+        content:
+          application/zip:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: Restore successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  restartRequired:
+                    type: boolean
+                    example: true
+        '400':
+          description: Invalid backup file
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /settings/backup/restore/setup:
+    post:
+      summary: Restore from backup during setup
+      description: Uploads a backup ZIP to restore during initial setup. Only available when Seerr is not yet initialized.
+      tags:
+        - settings
+      requestBody:
+        required: true
+        content:
+          application/zip:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: Restore successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '403':
+          description: Seerr is already initialized
   /settings/about:
     get:
       summary: Get server stats

@@ -132,12 +132,18 @@ class PlexTvAPI extends ExternalAPI {
   private authToken: string;
 
   constructor(authToken: string) {
+    const settings = getSettings();
+
     super(
       'https://plex.tv',
       {},
       {
         headers: {
           'X-Plex-Token': authToken,
+          'X-Plex-Client-Identifier': settings.clientId,
+          'X-Plex-Product': 'Seerr',
+          'X-Plex-Device-Name': 'Seerr',
+          'X-Plex-Platform': 'Seerr',
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
