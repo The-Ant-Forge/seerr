@@ -13,6 +13,7 @@ import notificationManager, { Notification } from '@server/lib/notifications';
 import { Permission } from '@server/lib/permissions';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
+import AsyncLock from '@server/utils/asyncLock';
 import { DbAwareColumn } from '@server/utils/DbColumnHelper';
 import { truncate } from 'lodash';
 import {
@@ -40,6 +41,8 @@ export class BlocklistedMediaError extends Error {}
 type MediaRequestOptions = {
   isAutoRequest?: boolean;
 };
+
+const requestLock = new AsyncLock();
 
 @Entity()
 export class MediaRequest {
@@ -123,391 +126,402 @@ export class MediaRequest {
         ? await tmdb.getMovie({ movieId: requestBody.mediaId })
         : await tmdb.getTvShow({ tvId: requestBody.mediaId });
 
-    let media = await mediaRepository.findOne({
-      where: {
-        tmdbId: requestBody.mediaId,
-        mediaType: requestBody.mediaType,
-      },
-      relations: ['requests'],
-    });
+    // Lock by media identity to prevent duplicate requests from concurrent submissions
+    const lockKey = `request-${requestBody.mediaType}-${requestBody.mediaId}`;
 
-    if (!media) {
-      media = new Media({
-        tmdbId: tmdbMedia.id,
-        tvdbId: requestBody.tvdbId ?? tmdbMedia.external_ids.tvdb_id,
-        status: !requestBody.is4k ? MediaStatus.PENDING : MediaStatus.UNKNOWN,
-        status4k: requestBody.is4k ? MediaStatus.PENDING : MediaStatus.UNKNOWN,
-        mediaType: requestBody.mediaType,
-      });
-    } else {
-      if (media.status === MediaStatus.BLOCKLISTED) {
-        logger.warn('Request for media blocked due to being blocklisted', {
-          tmdbId: tmdbMedia.id,
+    return requestLock.dispatch<MediaRequest>(lockKey, async () => {
+      let media = await mediaRepository.findOne({
+        where: {
+          tmdbId: requestBody.mediaId,
           mediaType: requestBody.mediaType,
-          label: 'Media Request',
-        });
-
-        throw new BlocklistedMediaError('This media is blocklisted.');
-      }
-
-      if (media.status === MediaStatus.UNKNOWN && !requestBody.is4k) {
-        media.status = MediaStatus.PENDING;
-      }
-
-      if (media.status4k === MediaStatus.UNKNOWN && requestBody.is4k) {
-        media.status4k = MediaStatus.PENDING;
-      }
-    }
-
-    const existing = await requestRepository
-      .createQueryBuilder('request')
-      .leftJoin('request.media', 'media')
-      .leftJoinAndSelect('request.requestedBy', 'user')
-      .where('request.is4k = :is4k', { is4k: requestBody.is4k })
-      .andWhere('media.tmdbId = :tmdbId', { tmdbId: tmdbMedia.id })
-      .andWhere('media.mediaType = :mediaType', {
-        mediaType: requestBody.mediaType,
-      })
-      .getMany();
-
-    if (existing && existing.length > 0) {
-      // If there is an existing movie request that isn't declined, don't allow a new one.
-      if (
-        requestBody.mediaType === MediaType.MOVIE &&
-        existing[0].status !== MediaRequestStatus.DECLINED &&
-        existing[0].status !== MediaRequestStatus.COMPLETED
-      ) {
-        logger.warn('Duplicate request for media blocked', {
-          tmdbId: tmdbMedia.id,
-          mediaType: requestBody.mediaType,
-          is4k: requestBody.is4k,
-          label: 'Media Request',
-        });
-
-        throw new DuplicateMediaRequestError(
-          'Request for this media already exists.'
-        );
-      }
-
-      // If an existing auto-request for this media exists from the same user,
-      // don't allow a new one.
-      if (
-        existing.find(
-          (r) => r.requestedBy.id === requestUser.id && r.isAutoRequest
-        )
-      ) {
-        throw new DuplicateMediaRequestError(
-          'Auto-request for this media and user already exists.'
-        );
-      }
-    }
-
-    // Apply overrides if the user is not an admin or has the "advanced request" permission
-    const useOverrides = !user.hasPermission([Permission.MANAGE_REQUESTS], {
-      type: 'or',
-    });
-
-    let rootFolder = requestBody.rootFolder;
-    let profileId = requestBody.profileId;
-    let tags = requestBody.tags;
-
-    if (useOverrides) {
-      const defaultRadarrId = requestBody.is4k
-        ? settings.radarr.findIndex((r) => r.is4k && r.isDefault)
-        : settings.radarr.findIndex((r) => !r.is4k && r.isDefault);
-      const defaultSonarrId = requestBody.is4k
-        ? settings.sonarr.findIndex((s) => s.is4k && s.isDefault)
-        : settings.sonarr.findIndex((s) => !s.is4k && s.isDefault);
-
-      const overrideRuleRepository = getRepository(OverrideRule);
-      const overrideRules = await overrideRuleRepository.find({
-        where:
-          requestBody.mediaType === MediaType.MOVIE
-            ? { radarrServiceId: defaultRadarrId }
-            : { sonarrServiceId: defaultSonarrId },
+        },
+        relations: ['requests'],
       });
 
-      const appliedOverrideRules = overrideRules.filter((rule) => {
-        const hasAnimeKeyword =
-          'results' in tmdbMedia.keywords &&
-          tmdbMedia.keywords.results.some(
-            (keyword: TmdbKeyword) => keyword.id === ANIME_KEYWORD_ID
+      if (!media) {
+        media = new Media({
+          tmdbId: tmdbMedia.id,
+          tvdbId: requestBody.tvdbId ?? tmdbMedia.external_ids.tvdb_id,
+          status: !requestBody.is4k ? MediaStatus.PENDING : MediaStatus.UNKNOWN,
+          status4k: requestBody.is4k
+            ? MediaStatus.PENDING
+            : MediaStatus.UNKNOWN,
+          mediaType: requestBody.mediaType,
+        });
+      } else {
+        if (media.status === MediaStatus.BLOCKLISTED) {
+          logger.warn('Request for media blocked due to being blocklisted', {
+            tmdbId: tmdbMedia.id,
+            mediaType: requestBody.mediaType,
+            label: 'Media Request',
+          });
+
+          throw new BlocklistedMediaError('This media is blocklisted.');
+        }
+
+        if (media.status === MediaStatus.UNKNOWN && !requestBody.is4k) {
+          media.status = MediaStatus.PENDING;
+        }
+
+        if (media.status4k === MediaStatus.UNKNOWN && requestBody.is4k) {
+          media.status4k = MediaStatus.PENDING;
+        }
+      }
+
+      const existing = await requestRepository
+        .createQueryBuilder('request')
+        .leftJoin('request.media', 'media')
+        .leftJoinAndSelect('request.requestedBy', 'user')
+        .where('request.is4k = :is4k', { is4k: requestBody.is4k })
+        .andWhere('media.tmdbId = :tmdbId', { tmdbId: tmdbMedia.id })
+        .andWhere('media.mediaType = :mediaType', {
+          mediaType: requestBody.mediaType,
+        })
+        .getMany();
+
+      if (existing && existing.length > 0) {
+        // If there is an existing movie request that isn't declined, don't allow a new one.
+        if (
+          requestBody.mediaType === MediaType.MOVIE &&
+          existing[0].status !== MediaRequestStatus.DECLINED &&
+          existing[0].status !== MediaRequestStatus.COMPLETED
+        ) {
+          logger.warn('Duplicate request for media blocked', {
+            tmdbId: tmdbMedia.id,
+            mediaType: requestBody.mediaType,
+            is4k: requestBody.is4k,
+            label: 'Media Request',
+          });
+
+          throw new DuplicateMediaRequestError(
+            'Request for this media already exists.'
           );
-
-        // Skip override rules if the media is an anime TV show as anime TV
-        // is handled by default and override rules do not explicitly include
-        // the anime keyword
-        if (
-          requestBody.mediaType === MediaType.TV &&
-          hasAnimeKeyword &&
-          (!rule.keywords ||
-            !rule.keywords.split(',').map(Number).includes(ANIME_KEYWORD_ID))
-        ) {
-          return false;
         }
 
+        // If an existing auto-request for this media exists from the same user,
+        // don't allow a new one.
         if (
-          rule.users &&
-          !rule.users
-            .split(',')
-            .some((userId) => Number(userId) === requestUser.id)
+          existing.find(
+            (r) => r.requestedBy.id === requestUser.id && r.isAutoRequest
+          )
         ) {
-          return false;
+          throw new DuplicateMediaRequestError(
+            'Auto-request for this media and user already exists.'
+          );
         }
-        if (
-          rule.genre &&
-          !rule.genre
-            .split(',')
-            .some((genreId) =>
-              tmdbMedia.genres
-                .map((genre) => genre.id)
-                .includes(Number(genreId))
-            )
-        ) {
-          return false;
-        }
-        if (
-          rule.language &&
-          !rule.language
-            .split('|')
-            .some((languageId) => languageId === tmdbMedia.original_language)
-        ) {
-          return false;
-        }
-        if (
-          rule.keywords &&
-          !rule.keywords.split(',').some((keywordId) => {
-            let keywordList: TmdbKeyword[] = [];
+      }
 
-            if ('keywords' in tmdbMedia.keywords) {
-              keywordList = tmdbMedia.keywords.keywords;
-            } else if ('results' in tmdbMedia.keywords) {
-              keywordList = tmdbMedia.keywords.results;
-            }
-
-            return keywordList
-              .map((keyword: TmdbKeyword) => keyword.id)
-              .includes(Number(keywordId));
-          })
-        ) {
-          return false;
-        }
-        return true;
+      // Apply overrides if the user is not an admin or has the "advanced request" permission
+      const useOverrides = !user.hasPermission([Permission.MANAGE_REQUESTS], {
+        type: 'or',
       });
 
-      // hacky way to prioritize rules
-      // TODO: make this better
-      const prioritizedRule = appliedOverrideRules.sort((a, b) => {
-        const keys: (keyof OverrideRule)[] = ['genre', 'language', 'keywords'];
+      let rootFolder = requestBody.rootFolder;
+      let profileId = requestBody.profileId;
+      let tags = requestBody.tags;
 
-        const aSpecificity = keys.filter((key) => a[key] !== null).length;
-        const bSpecificity = keys.filter((key) => b[key] !== null).length;
+      if (useOverrides) {
+        const defaultRadarrId = requestBody.is4k
+          ? settings.radarr.findIndex((r) => r.is4k && r.isDefault)
+          : settings.radarr.findIndex((r) => !r.is4k && r.isDefault);
+        const defaultSonarrId = requestBody.is4k
+          ? settings.sonarr.findIndex((s) => s.is4k && s.isDefault)
+          : settings.sonarr.findIndex((s) => !s.is4k && s.isDefault);
 
-        // Take the rule with the most specific condition first
-        return bSpecificity - aSpecificity;
-      })[0];
+        const overrideRuleRepository = getRepository(OverrideRule);
+        const overrideRules = await overrideRuleRepository.find({
+          where:
+            requestBody.mediaType === MediaType.MOVIE
+              ? { radarrServiceId: defaultRadarrId }
+              : { sonarrServiceId: defaultSonarrId },
+        });
 
-      if (prioritizedRule) {
-        if (prioritizedRule.rootFolder) {
-          rootFolder = prioritizedRule.rootFolder;
+        const appliedOverrideRules = overrideRules.filter((rule) => {
+          const hasAnimeKeyword =
+            'results' in tmdbMedia.keywords &&
+            tmdbMedia.keywords.results.some(
+              (keyword: TmdbKeyword) => keyword.id === ANIME_KEYWORD_ID
+            );
+
+          // Skip override rules if the media is an anime TV show as anime TV
+          // is handled by default and override rules do not explicitly include
+          // the anime keyword
+          if (
+            requestBody.mediaType === MediaType.TV &&
+            hasAnimeKeyword &&
+            (!rule.keywords ||
+              !rule.keywords.split(',').map(Number).includes(ANIME_KEYWORD_ID))
+          ) {
+            return false;
+          }
+
+          if (
+            rule.users &&
+            !rule.users
+              .split(',')
+              .some((userId) => Number(userId) === requestUser.id)
+          ) {
+            return false;
+          }
+          if (
+            rule.genre &&
+            !rule.genre
+              .split(',')
+              .some((genreId) =>
+                tmdbMedia.genres
+                  .map((genre) => genre.id)
+                  .includes(Number(genreId))
+              )
+          ) {
+            return false;
+          }
+          if (
+            rule.language &&
+            !rule.language
+              .split('|')
+              .some((languageId) => languageId === tmdbMedia.original_language)
+          ) {
+            return false;
+          }
+          if (
+            rule.keywords &&
+            !rule.keywords.split(',').some((keywordId) => {
+              let keywordList: TmdbKeyword[] = [];
+
+              if ('keywords' in tmdbMedia.keywords) {
+                keywordList = tmdbMedia.keywords.keywords;
+              } else if ('results' in tmdbMedia.keywords) {
+                keywordList = tmdbMedia.keywords.results;
+              }
+
+              return keywordList
+                .map((keyword: TmdbKeyword) => keyword.id)
+                .includes(Number(keywordId));
+            })
+          ) {
+            return false;
+          }
+          return true;
+        });
+
+        // hacky way to prioritize rules
+        // TODO: make this better
+        const prioritizedRule = appliedOverrideRules.sort((a, b) => {
+          const keys: (keyof OverrideRule)[] = [
+            'genre',
+            'language',
+            'keywords',
+          ];
+
+          const aSpecificity = keys.filter((key) => a[key] !== null).length;
+          const bSpecificity = keys.filter((key) => b[key] !== null).length;
+
+          // Take the rule with the most specific condition first
+          return bSpecificity - aSpecificity;
+        })[0];
+
+        if (prioritizedRule) {
+          if (prioritizedRule.rootFolder) {
+            rootFolder = prioritizedRule.rootFolder;
+          }
+          if (prioritizedRule.profileId) {
+            profileId = prioritizedRule.profileId;
+          }
+          if (prioritizedRule.tags) {
+            tags = [
+              ...new Set([
+                ...(tags || []),
+                ...prioritizedRule.tags.split(',').map((tag) => Number(tag)),
+              ]),
+            ];
+          }
+
+          logger.debug('Override rule applied.', {
+            label: 'Media Request',
+            overrides: prioritizedRule,
+          });
         }
-        if (prioritizedRule.profileId) {
-          profileId = prioritizedRule.profileId;
+      }
+
+      if (requestBody.mediaType === MediaType.MOVIE) {
+        await mediaRepository.save(media);
+
+        const request = new MediaRequest({
+          type: MediaType.MOVIE,
+          media,
+          requestedBy: requestUser,
+          // If the user is an admin or has the "auto approve" permission, automatically approve the request
+          status: user.hasPermission(
+            [
+              requestBody.is4k
+                ? Permission.AUTO_APPROVE_4K
+                : Permission.AUTO_APPROVE,
+              requestBody.is4k
+                ? Permission.AUTO_APPROVE_4K_MOVIE
+                : Permission.AUTO_APPROVE_MOVIE,
+              Permission.MANAGE_REQUESTS,
+            ],
+            { type: 'or' }
+          )
+            ? MediaRequestStatus.APPROVED
+            : MediaRequestStatus.PENDING,
+          modifiedBy: user.hasPermission(
+            [
+              requestBody.is4k
+                ? Permission.AUTO_APPROVE_4K
+                : Permission.AUTO_APPROVE,
+              requestBody.is4k
+                ? Permission.AUTO_APPROVE_4K_MOVIE
+                : Permission.AUTO_APPROVE_MOVIE,
+              Permission.MANAGE_REQUESTS,
+            ],
+            { type: 'or' }
+          )
+            ? user
+            : undefined,
+          is4k: requestBody.is4k,
+          serverId: requestBody.serverId,
+          profileId: profileId,
+          rootFolder: rootFolder,
+          tags: tags,
+          isAutoRequest: options.isAutoRequest ?? false,
+        });
+
+        await requestRepository.save(request);
+        return request;
+      } else {
+        const tmdbMediaShow = tmdbMedia as Awaited<
+          ReturnType<typeof tmdb.getTvShow>
+        >;
+        let requestedSeasons =
+          requestBody.seasons === 'all'
+            ? tmdbMediaShow.seasons
+                .filter((season) => season.season_number !== 0)
+                .map((season) => season.season_number)
+            : (requestBody.seasons as number[]);
+        if (!settings.main.enableSpecialEpisodes) {
+          requestedSeasons = requestedSeasons.filter((sn) => sn > 0);
         }
-        if (prioritizedRule.tags) {
-          tags = [
-            ...new Set([
-              ...(tags || []),
-              ...prioritizedRule.tags.split(',').map((tag) => Number(tag)),
-            ]),
+
+        let existingSeasons: number[] = [];
+
+        // We need to check existing requests on this title to make sure we don't double up on seasons that were
+        // already requested. In the case they were, we just throw out any duplicates but still approve the request.
+        // (Unless there are no seasons, in which case we abort)
+        if (media.requests) {
+          existingSeasons = media.requests
+            .filter(
+              (request) =>
+                request.is4k === requestBody.is4k &&
+                request.status !== MediaRequestStatus.DECLINED &&
+                request.status !== MediaRequestStatus.COMPLETED
+            )
+            .reduce((seasons, request) => {
+              const combinedSeasons = request.seasons.map(
+                (season) => season.seasonNumber
+              );
+
+              return [...seasons, ...combinedSeasons];
+            }, [] as number[]);
+        }
+
+        // We should also check seasons that are available/partially available but don't have existing requests
+        if (media.seasons) {
+          existingSeasons = [
+            ...existingSeasons,
+            ...media.seasons
+              .filter(
+                (season) =>
+                  season[requestBody.is4k ? 'status4k' : 'status'] !==
+                    MediaStatus.UNKNOWN &&
+                  season[requestBody.is4k ? 'status4k' : 'status'] !==
+                    MediaStatus.DELETED
+              )
+              .map((season) => season.seasonNumber),
           ];
         }
 
-        logger.debug('Override rule applied.', {
-          label: 'Media Request',
-          overrides: prioritizedRule,
-        });
-      }
-    }
+        const finalSeasons = requestedSeasons.filter(
+          (rs) => !existingSeasons.includes(rs)
+        );
 
-    if (requestBody.mediaType === MediaType.MOVIE) {
-      await mediaRepository.save(media);
+        if (finalSeasons.length === 0) {
+          throw new NoSeasonsAvailableError('No seasons available to request');
+        } else if (
+          quotas.tv.limit &&
+          finalSeasons.length > (quotas.tv.remaining ?? 0)
+        ) {
+          throw new QuotaRestrictedError('Series Quota exceeded.');
+        }
 
-      const request = new MediaRequest({
-        type: MediaType.MOVIE,
-        media,
-        requestedBy: requestUser,
-        // If the user is an admin or has the "auto approve" permission, automatically approve the request
-        status: user.hasPermission(
-          [
-            requestBody.is4k
-              ? Permission.AUTO_APPROVE_4K
-              : Permission.AUTO_APPROVE,
-            requestBody.is4k
-              ? Permission.AUTO_APPROVE_4K_MOVIE
-              : Permission.AUTO_APPROVE_MOVIE,
-            Permission.MANAGE_REQUESTS,
-          ],
-          { type: 'or' }
-        )
-          ? MediaRequestStatus.APPROVED
-          : MediaRequestStatus.PENDING,
-        modifiedBy: user.hasPermission(
-          [
-            requestBody.is4k
-              ? Permission.AUTO_APPROVE_4K
-              : Permission.AUTO_APPROVE,
-            requestBody.is4k
-              ? Permission.AUTO_APPROVE_4K_MOVIE
-              : Permission.AUTO_APPROVE_MOVIE,
-            Permission.MANAGE_REQUESTS,
-          ],
-          { type: 'or' }
-        )
-          ? user
-          : undefined,
-        is4k: requestBody.is4k,
-        serverId: requestBody.serverId,
-        profileId: profileId,
-        rootFolder: rootFolder,
-        tags: tags,
-        isAutoRequest: options.isAutoRequest ?? false,
-      });
+        await mediaRepository.save(media);
 
-      await requestRepository.save(request);
-      return request;
-    } else {
-      const tmdbMediaShow = tmdbMedia as Awaited<
-        ReturnType<typeof tmdb.getTvShow>
-      >;
-      let requestedSeasons =
-        requestBody.seasons === 'all'
-          ? tmdbMediaShow.seasons
-              .filter((season) => season.season_number !== 0)
-              .map((season) => season.season_number)
-          : (requestBody.seasons as number[]);
-      if (!settings.main.enableSpecialEpisodes) {
-        requestedSeasons = requestedSeasons.filter((sn) => sn > 0);
-      }
-
-      let existingSeasons: number[] = [];
-
-      // We need to check existing requests on this title to make sure we don't double up on seasons that were
-      // already requested. In the case they were, we just throw out any duplicates but still approve the request.
-      // (Unless there are no seasons, in which case we abort)
-      if (media.requests) {
-        existingSeasons = media.requests
-          .filter(
-            (request) =>
-              request.is4k === requestBody.is4k &&
-              request.status !== MediaRequestStatus.DECLINED &&
-              request.status !== MediaRequestStatus.COMPLETED
+        const request = new MediaRequest({
+          type: MediaType.TV,
+          media,
+          requestedBy: requestUser,
+          // If the user is an admin or has the "auto approve" permission, automatically approve the request
+          status: user.hasPermission(
+            [
+              requestBody.is4k
+                ? Permission.AUTO_APPROVE_4K
+                : Permission.AUTO_APPROVE,
+              requestBody.is4k
+                ? Permission.AUTO_APPROVE_4K_TV
+                : Permission.AUTO_APPROVE_TV,
+              Permission.MANAGE_REQUESTS,
+            ],
+            { type: 'or' }
           )
-          .reduce((seasons, request) => {
-            const combinedSeasons = request.seasons.map(
-              (season) => season.seasonNumber
-            );
+            ? MediaRequestStatus.APPROVED
+            : MediaRequestStatus.PENDING,
+          modifiedBy: user.hasPermission(
+            [
+              requestBody.is4k
+                ? Permission.AUTO_APPROVE_4K
+                : Permission.AUTO_APPROVE,
+              requestBody.is4k
+                ? Permission.AUTO_APPROVE_4K_TV
+                : Permission.AUTO_APPROVE_TV,
+              Permission.MANAGE_REQUESTS,
+            ],
+            { type: 'or' }
+          )
+            ? user
+            : undefined,
+          is4k: requestBody.is4k,
+          serverId: requestBody.serverId,
+          profileId: profileId,
+          rootFolder: rootFolder,
+          languageProfileId: requestBody.languageProfileId,
+          tags: tags,
+          seasons: finalSeasons.map(
+            (sn) =>
+              new SeasonRequest({
+                seasonNumber: sn,
+                status: user.hasPermission(
+                  [
+                    requestBody.is4k
+                      ? Permission.AUTO_APPROVE_4K
+                      : Permission.AUTO_APPROVE,
+                    requestBody.is4k
+                      ? Permission.AUTO_APPROVE_4K_TV
+                      : Permission.AUTO_APPROVE_TV,
+                    Permission.MANAGE_REQUESTS,
+                  ],
+                  { type: 'or' }
+                )
+                  ? MediaRequestStatus.APPROVED
+                  : MediaRequestStatus.PENDING,
+              })
+          ),
+          isAutoRequest: options.isAutoRequest ?? false,
+        });
 
-            return [...seasons, ...combinedSeasons];
-          }, [] as number[]);
+        await requestRepository.save(request);
+        return request;
       }
-
-      // We should also check seasons that are available/partially available but don't have existing requests
-      if (media.seasons) {
-        existingSeasons = [
-          ...existingSeasons,
-          ...media.seasons
-            .filter(
-              (season) =>
-                season[requestBody.is4k ? 'status4k' : 'status'] !==
-                  MediaStatus.UNKNOWN &&
-                season[requestBody.is4k ? 'status4k' : 'status'] !==
-                  MediaStatus.DELETED
-            )
-            .map((season) => season.seasonNumber),
-        ];
-      }
-
-      const finalSeasons = requestedSeasons.filter(
-        (rs) => !existingSeasons.includes(rs)
-      );
-
-      if (finalSeasons.length === 0) {
-        throw new NoSeasonsAvailableError('No seasons available to request');
-      } else if (
-        quotas.tv.limit &&
-        finalSeasons.length > (quotas.tv.remaining ?? 0)
-      ) {
-        throw new QuotaRestrictedError('Series Quota exceeded.');
-      }
-
-      await mediaRepository.save(media);
-
-      const request = new MediaRequest({
-        type: MediaType.TV,
-        media,
-        requestedBy: requestUser,
-        // If the user is an admin or has the "auto approve" permission, automatically approve the request
-        status: user.hasPermission(
-          [
-            requestBody.is4k
-              ? Permission.AUTO_APPROVE_4K
-              : Permission.AUTO_APPROVE,
-            requestBody.is4k
-              ? Permission.AUTO_APPROVE_4K_TV
-              : Permission.AUTO_APPROVE_TV,
-            Permission.MANAGE_REQUESTS,
-          ],
-          { type: 'or' }
-        )
-          ? MediaRequestStatus.APPROVED
-          : MediaRequestStatus.PENDING,
-        modifiedBy: user.hasPermission(
-          [
-            requestBody.is4k
-              ? Permission.AUTO_APPROVE_4K
-              : Permission.AUTO_APPROVE,
-            requestBody.is4k
-              ? Permission.AUTO_APPROVE_4K_TV
-              : Permission.AUTO_APPROVE_TV,
-            Permission.MANAGE_REQUESTS,
-          ],
-          { type: 'or' }
-        )
-          ? user
-          : undefined,
-        is4k: requestBody.is4k,
-        serverId: requestBody.serverId,
-        profileId: profileId,
-        rootFolder: rootFolder,
-        languageProfileId: requestBody.languageProfileId,
-        tags: tags,
-        seasons: finalSeasons.map(
-          (sn) =>
-            new SeasonRequest({
-              seasonNumber: sn,
-              status: user.hasPermission(
-                [
-                  requestBody.is4k
-                    ? Permission.AUTO_APPROVE_4K
-                    : Permission.AUTO_APPROVE,
-                  requestBody.is4k
-                    ? Permission.AUTO_APPROVE_4K_TV
-                    : Permission.AUTO_APPROVE_TV,
-                  Permission.MANAGE_REQUESTS,
-                ],
-                { type: 'or' }
-              )
-                ? MediaRequestStatus.APPROVED
-                : MediaRequestStatus.PENDING,
-            })
-        ),
-        isAutoRequest: options.isAutoRequest ?? false,
-      });
-
-      await requestRepository.save(request);
-      return request;
-    }
+    }); // end requestLock.dispatch
   }
 
   @PrimaryGeneratedColumn()
