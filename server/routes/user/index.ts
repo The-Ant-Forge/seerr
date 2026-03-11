@@ -604,9 +604,9 @@ router.post(
       const createdUsers: User[] = [];
 
       // Pre-fetch all existing users that match any Plex ID or email (1 query instead of N)
-      const plexAccounts = plexUsersResponse.MediaContainer.User.map(
-        (u) => u.$
-      ).filter((a) => a.email);
+      const plexAccounts = plexUsersResponse.MediaContainer.User.filter(
+        (a) => a.email
+      );
       const plexIds = plexAccounts.map((a) => parseInt(a.id));
       const emails = plexAccounts.map((a) => a.email.toLowerCase());
 

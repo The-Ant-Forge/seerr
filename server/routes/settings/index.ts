@@ -30,6 +30,7 @@ import { appDataPath } from '@server/utils/appDataVolume';
 import { getAppVersion } from '@server/utils/appVersion';
 import { dnsCache } from '@server/utils/dnsCache';
 import { getHostname } from '@server/utils/getHostname';
+import { semverGte } from '@server/utils/semverCompare';
 import type { DnsEntries, DnsStats } from 'dns-caching';
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
@@ -37,7 +38,6 @@ import fs from 'fs';
 import { escapeRegExp, merge, omit, set, sortBy } from 'lodash';
 import { rescheduleJob } from 'node-schedule';
 import path from 'path';
-import { semverGte } from '@server/utils/semverCompare';
 import { URL } from 'url';
 import metadataRoutes from './metadata';
 import notificationRoutes from './notifications';
@@ -482,9 +482,9 @@ settingsRoutes.get(
         where: { id: 1 },
       });
       const plexApi = new PlexTvAPI(admin.plexToken ?? '');
-      const plexUsers = (await plexApi.getUsers()).MediaContainer.User.map(
-        (user) => user.$
-      ).filter((user) => user.email);
+      const plexUsers = (await plexApi.getUsers()).MediaContainer.User.filter(
+        (user) => user.email
+      );
 
       const unimportedPlexUsers: {
         id: string;

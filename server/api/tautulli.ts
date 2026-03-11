@@ -1,10 +1,8 @@
 import type { User } from '@server/entity/User';
 import type { TautulliSettings } from '@server/lib/settings';
 import logger from '@server/logger';
-import { requestInterceptorFunction } from '@server/utils/customProxyAgent';
-import type { AxiosInstance } from 'axios';
-import axios from 'axios';
 import { uniqWith } from 'lodash';
+import ExternalAPI from './externalapi';
 
 export interface TautulliHistoryRecord {
   date: number;
@@ -114,26 +112,21 @@ interface TautulliInfoResponse {
   };
 }
 
-class TautulliAPI {
-  private axios: AxiosInstance;
-
+class TautulliAPI extends ExternalAPI {
   constructor(settings: TautulliSettings) {
-    this.axios = axios.create({
-      baseURL: `${settings.useSsl ? 'https' : 'http'}://${settings.hostname}:${
-        settings.port
-      }${settings.urlBase ?? ''}`,
-      params: { apikey: settings.apiKey },
-    });
-    this.axios.interceptors.request.use(requestInterceptorFunction);
+    const protocol = settings.useSsl ? 'https' : 'http';
+    const baseUrl = `${protocol}://${settings.hostname}:${settings.port}${settings.urlBase ?? ''}`;
+
+    super(baseUrl, { apikey: settings.apiKey });
   }
 
   public async getInfo(): Promise<TautulliInfo> {
     try {
       return (
-        await this.axios.get<TautulliInfoResponse>('/api/v2', {
+        await this.get<TautulliInfoResponse>('/api/v2', {
           params: { cmd: 'get_tautulli_info' },
         })
-      ).data.response.data;
+      ).response.data;
     } catch (e) {
       logger.error('Something went wrong fetching Tautulli server info', {
         label: 'Tautulli API',
@@ -150,14 +143,14 @@ class TautulliAPI {
   ): Promise<TautulliWatchStats[]> {
     try {
       return (
-        await this.axios.get<TautulliWatchStatsResponse>('/api/v2', {
+        await this.get<TautulliWatchStatsResponse>('/api/v2', {
           params: {
             cmd: 'get_item_watch_time_stats',
             rating_key: ratingKey,
             grouping: 1,
           },
         })
-      ).data.response.data;
+      ).response.data;
     } catch (e) {
       logger.error(
         'Something went wrong fetching media watch stats from Tautulli',
@@ -178,14 +171,14 @@ class TautulliAPI {
   ): Promise<TautulliWatchUser[]> {
     try {
       return (
-        await this.axios.get<TautulliWatchUsersResponse>('/api/v2', {
+        await this.get<TautulliWatchUsersResponse>('/api/v2', {
           params: {
             cmd: 'get_item_user_stats',
             rating_key: ratingKey,
             grouping: 1,
           },
         })
-      ).data.response.data;
+      ).response.data;
     } catch (e) {
       logger.error(
         'Something went wrong fetching media watch users from Tautulli',
@@ -208,7 +201,7 @@ class TautulliAPI {
       }
 
       return (
-        await this.axios.get<TautulliWatchStatsResponse>('/api/v2', {
+        await this.get<TautulliWatchStatsResponse>('/api/v2', {
           params: {
             cmd: 'get_user_watch_time_stats',
             user_id: user.plexId,
@@ -216,7 +209,7 @@ class TautulliAPI {
             grouping: 1,
           },
         })
-      ).data.response.data[0];
+      ).response.data[0];
     } catch (e) {
       logger.error(
         'Something went wrong fetching user watch stats from Tautulli',
@@ -247,7 +240,7 @@ class TautulliAPI {
 
       while (results.length < 20) {
         const tautulliData = (
-          await this.axios.get<TautulliHistoryResponse>('/api/v2', {
+          await this.get<TautulliHistoryResponse>('/api/v2', {
             params: {
               cmd: 'get_history',
               grouping: 1,
@@ -259,7 +252,7 @@ class TautulliAPI {
               start,
             },
           })
-        ).data.response.data.data;
+        ).response.data.data;
 
         if (!tautulliData.length) {
           return results;
