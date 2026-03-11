@@ -295,7 +295,7 @@ settingsRoutes.post('/jellyfin', async (req, res, next) => {
     const result = await jellyfinClient.getSystemInfo();
 
     if (!result?.Id) {
-      throw new ApiError(result?.status, ApiErrorCode.InvalidUrl);
+      throw new ApiError(result?.status ?? 500, ApiErrorCode.InvalidUrl);
     }
 
     Object.assign(settings.jellyfin, req.body);

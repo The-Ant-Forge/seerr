@@ -122,7 +122,9 @@ export interface JellyfinItemsReponse {
 }
 
 export interface JellyfinSystemInfo {
+  Id?: string;
   ServerName: string;
+  status?: number;
   [key: string]: unknown;
 }
 

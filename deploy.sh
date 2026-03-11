@@ -61,11 +61,14 @@ cp "$SRC/tailwind.config.js" "$DEST/"
 cp "$SRC/Seerr-Tray.ps1"    "$DEST/"
 cp "$SRC/Seerr-Tray.vbs"    "$DEST/"
 
+# Prepare script (bin/prepare.js) needs to exist for the lifecycle hook
+mkdir -p "$DEST/bin"
+cp "$SRC/bin/prepare.js" "$DEST/bin/"
+
 # Install production dependencies (preserves pnpm symlink structure)
 echo "==> Installing production dependencies..."
 cd "$DEST"
-pnpm install --prod --ignore-scripts
-pnpm rebuild
+CI=true pnpm install --prod
 
 echo ""
 echo "==> Deploy complete ($( [ "$CLEAN" = true ] && echo "clean" || echo "safe" ))."
