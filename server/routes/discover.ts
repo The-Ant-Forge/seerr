@@ -891,10 +891,7 @@ discoverRoutes.get<Record<string, unknown>, WatchlistResponse>(
       // Non-Plex users can only see their own watchlist
       const [result, total] = await getRepository(Watchlist).findAndCount({
         where: { requestedBy: { id: activeUser?.id } },
-        relations: {
-          /*requestedBy: true,media:true*/
-        },
-        // loadRelationIds: true,
+        relations: {},
         take: itemsPerPage,
         skip: offset,
       });
