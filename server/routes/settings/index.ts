@@ -564,9 +564,20 @@ settingsRoutes.get(
         filter = ['debug', 'info', 'warn', 'error'];
     }
 
-    const logFile = process.env.CONFIG_DIRECTORY
-      ? `${process.env.CONFIG_DIRECTORY}/logs/.machinelogs.json`
-      : path.join(__dirname, '../../../config/logs/.machinelogs.json');
+    const logDir = process.env.CONFIG_DIRECTORY
+      ? `${process.env.CONFIG_DIRECTORY}/logs`
+      : path.join(__dirname, '../../../config/logs');
+    // Prefer symlink; fall back to most recent dated file (symlinks need admin on Windows)
+    const symlinkPath = path.join(logDir, '.machinelogs.json');
+    let logFile = symlinkPath;
+    if (!fs.existsSync(symlinkPath)) {
+      const dated = fs
+        .readdirSync(logDir)
+        .filter((f) => f.startsWith('.machinelogs-') && f.endsWith('.json'))
+        .sort()
+        .pop();
+      logFile = dated ? path.join(logDir, dated) : symlinkPath; // will fail with clear ENOENT if no logs exist at all
+    }
     const logs: LogMessage[] = [];
     const logMessageProperties = [
       'timestamp',
