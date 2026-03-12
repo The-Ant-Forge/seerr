@@ -1,5 +1,6 @@
 import { MediaServerType } from '@server/constants/server';
 import blocklistedTagsProcessor from '@server/job/blocklistedTagsProcessor';
+import actorSubscriptionSync from '@server/lib/actorSubscriptionSync';
 import availabilitySync from '@server/lib/availabilitySync';
 import downloadTracker from '@server/lib/downloadtracker';
 import ImageProxy from '@server/lib/imageproxy';
@@ -252,6 +253,20 @@ export const startJobs = (): void => {
     }),
     running: () => blocklistedTagsProcessor.status().running,
     cancelFn: () => blocklistedTagsProcessor.cancel(),
+  });
+
+  scheduledJobs.push({
+    id: 'actor-subscription-sync',
+    name: 'Actor Subscription Sync',
+    type: 'process',
+    interval: 'hours',
+    cronSchedule: jobs['actor-subscription-sync'].schedule,
+    job: schedule.scheduleJob(jobs['actor-subscription-sync'].schedule, () => {
+      logger.info('Starting scheduled job: Actor Subscription Sync', {
+        label: 'Jobs',
+      });
+      actorSubscriptionSync.syncSubscriptions();
+    }),
   });
 
   logger.info('Scheduled jobs loaded', { label: 'Jobs' });

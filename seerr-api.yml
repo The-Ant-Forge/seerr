@@ -48,6 +48,36 @@ servers:
 
 components:
   schemas:
+    ActorSubscription:
+      type: object
+      properties:
+        id:
+          type: number
+        personId:
+          type: number
+        personName:
+          type: string
+        profilePath:
+          type: string
+          nullable: true
+        mediaFilter:
+          type: string
+          enum: [all, movie, tv]
+        creditType:
+          type: string
+          enum: [cast, crew, both]
+        minVoteCount:
+          type: number
+        action:
+          type: string
+          enum: [request, notify]
+        createdAt:
+          type: string
+          format: date-time
+        lastSyncedAt:
+          type: string
+          format: date-time
+          nullable: true
     Blocklist:
       type: object
       properties:
@@ -4869,6 +4899,142 @@ paths:
       responses:
         '204':
           description: Succesfully removed watchlist item
+  /actorSubscription:
+    get:
+      summary: List actor subscriptions
+      description: Returns the current user's actor subscriptions.
+      tags:
+        - actorSubscription
+      parameters:
+        - in: query
+          name: take
+          schema:
+            type: number
+        - in: query
+          name: skip
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Actor subscriptions list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pageInfo:
+                    $ref: '#/components/schemas/PageInfo'
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ActorSubscription'
+    post:
+      summary: Follow an actor
+      description: Creates a new actor subscription. Seeds known credits from TMDB.
+      tags:
+        - actorSubscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - personId
+              properties:
+                personId:
+                  type: number
+                mediaFilter:
+                  type: string
+                  enum: [all, movie, tv]
+                creditType:
+                  type: string
+                  enum: [cast, crew, both]
+                minVoteCount:
+                  type: number
+                action:
+                  type: string
+                  enum: [request, notify]
+      responses:
+        '201':
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActorSubscription'
+        '409':
+          description: Already following this person
+  /actorSubscription/{id}:
+    put:
+      summary: Update actor subscription
+      description: Updates settings for an existing actor subscription.
+      tags:
+        - actorSubscription
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: number
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mediaFilter:
+                  type: string
+                  enum: [all, movie, tv]
+                creditType:
+                  type: string
+                  enum: [cast, crew, both]
+                minVoteCount:
+                  type: number
+                action:
+                  type: string
+                  enum: [request, notify]
+      responses:
+        '200':
+          description: Subscription updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActorSubscription'
+    delete:
+      summary: Unfollow an actor
+      description: Deletes an actor subscription.
+      tags:
+        - actorSubscription
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: number
+      responses:
+        '204':
+          description: Subscription deleted
+  /actorSubscription/person/{personId}:
+    get:
+      summary: Check actor subscription
+      description: Returns the current user's subscription for a given person, or null.
+      tags:
+        - actorSubscription
+      parameters:
+        - in: path
+          name: personId
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Subscription details or null
+          content:
+            application/json:
+              schema:
+                nullable: true
+                allOf:
+                  - $ref: '#/components/schemas/ActorSubscription'
   /user/{userId}/watchlist:
     get:
       summary: Get the Plex watchlist for a specific user

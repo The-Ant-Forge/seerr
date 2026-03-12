@@ -1,13 +1,19 @@
 import Ellipsis from '@app/assets/ellipsis.svg';
+import Button from '@app/components/Common/Button';
 import CachedImage from '@app/components/Common/CachedImage';
 import ImageFader from '@app/components/Common/ImageFader';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
 import PageTitle from '@app/components/Common/PageTitle';
+import ActorSubscribeModal from '@app/components/PersonDetails/ActorSubscribeModal';
 import TitleCard from '@app/components/TitleCard';
 import globalMessages from '@app/i18n/globalMessages';
 import Error from '@app/pages/_error';
 import defineMessages from '@app/utils/defineMessages';
-import { CircleStackIcon } from '@heroicons/react/24/solid';
+import {
+  CircleStackIcon,
+  HeartIcon as HeartIconOutline,
+} from '@heroicons/react/24/outline';
+import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import type { PersonCombinedCreditsResponse } from '@server/interfaces/api/personInterfaces';
 import type { PersonDetails as PersonDetailsType } from '@server/models/Person';
 import { groupBy } from 'lodash';
@@ -15,7 +21,7 @@ import { useRouter } from 'next/router';
 import { useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 
 const messages = defineMessages('components.PersonDetails', {
   birthdate: 'Born {birthdate}',
@@ -24,6 +30,8 @@ const messages = defineMessages('components.PersonDetails', {
   appearsin: 'Appearances',
   crewmember: 'Crew',
   ascharacter: 'as {character}',
+  follow: 'Follow',
+  following: 'Following',
 });
 
 type MediaType = 'all' | 'movie' | 'tv';
@@ -36,6 +44,24 @@ const PersonDetails = () => {
     `/api/v1/person/${router.query.personId}`
   );
   const [showBio, setShowBio] = useState(false);
+  const [showSubscribeModal, setShowSubscribeModal] = useState(false);
+
+  const { data: subscription, mutate: mutateSubscription } = useSWR<{
+    id: number;
+    personId: number;
+    personName: string;
+    profilePath: string | null;
+    mediaFilter: string;
+    creditType: string;
+    minVoteCount: number;
+    action: string;
+    createdAt: string;
+    lastSyncedAt: string | null;
+  } | null>(
+    router.query.personId
+      ? `/api/v1/actorSubscription/person/${router.query.personId}`
+      : null
+  );
 
   const { data: combinedCredits, error: errorCombinedCredits } =
     useSWR<PersonCombinedCreditsResponse>(
@@ -239,6 +265,19 @@ const PersonDetails = () => {
 
   return (
     <>
+      {showSubscribeModal && (
+        <ActorSubscribeModal
+          personId={Number(router.query.personId)}
+          personName={data.name}
+          existing={subscription}
+          onClose={() => setShowSubscribeModal(false)}
+          onComplete={() => {
+            setShowSubscribeModal(false);
+            mutateSubscription();
+            mutate('/api/v1/actorSubscription');
+          }}
+        />
+      )}
       <PageTitle title={data.name} />
       {(sortedCrew || sortedCast) && (
         <div className="absolute left-0 right-0 top-0 z-0 h-96">
@@ -272,7 +311,24 @@ const PersonDetails = () => {
         )}
         <div className="w-full text-center text-gray-300 lg:text-left">
           <div className="flex w-full items-center justify-center lg:justify-between">
-            <h1 className="text-3xl text-white lg:text-4xl">{data.name}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl text-white lg:text-4xl">{data.name}</h1>
+              <Button
+                buttonType={subscription ? 'primary' : 'ghost'}
+                onClick={() => setShowSubscribeModal(true)}
+              >
+                {subscription ? (
+                  <HeartIconSolid className="h-5 w-5" />
+                ) : (
+                  <HeartIconOutline className="h-5 w-5" />
+                )}
+                <span>
+                  {intl.formatMessage(
+                    subscription ? messages.following : messages.follow
+                  )}
+                </span>
+              </Button>
+            </div>
             <div className="hidden flex-shrink-0 lg:block">
               {mediaTypePicker}
             </div>
