@@ -150,6 +150,35 @@ Base path: `/api/v1` — full spec at `/api-docs`
 | `/service` | Service status and info |
 | `/overrideRule` | Override rule management |
 
+## Git & Upstream
+
+### Branch strategy
+This is a fork of [seerr-team/seerr](https://github.com/seerr-team/seerr) with significant local changes.
+
+| Branch | Purpose |
+|---|---|
+| `main` | Our primary branch — all Seerr work lands here, deploy from here |
+| `origin/develop` | Legacy — was the old default, now unused |
+| `upstream/develop` | Upstream source — fetch with `git fetch upstream` |
+
+### Incorporating upstream changes
+We cherry-pick individual commits rather than merging, because the histories have diverged too far.
+
+```bash
+git fetch upstream
+git log upstream/develop --oneline          # review new commits
+git cherry-pick <sha>                       # pick what we need
+```
+
+When cherry-picking, watch for:
+- Conflicts with our custom features (actor subscriptions, override rules, etc.)
+- Dependency version mismatches (we may be ahead or behind upstream)
+- Migration conflicts (we have custom migrations that upstream doesn't)
+
+### Remotes
+- `origin` → `The-Ant-Forge/seerr` (our fork)
+- `upstream` → `seerr-team/seerr` (upstream source)
+
 ## Working Style
 
 ### Keep diffs focused
@@ -285,3 +314,4 @@ A review document in `docs/` named `Code-Review-YYMMDD.md` (or similar) with:
 2. Review and approve findings with the user
 3. Implement approved items in focused commits
 4. Re-run tests after each change
+5. On completion of review items update the code review doc to reflect tasks done, deferred or ignored.
