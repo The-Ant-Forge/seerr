@@ -66,7 +66,7 @@ components:
         creditType:
           type: string
           enum: [cast, crew, both]
-        minVoteCount:
+        minImdbRating:
           type: number
         action:
           type: string
@@ -4950,7 +4950,7 @@ paths:
                 creditType:
                   type: string
                   enum: [cast, crew, both]
-                minVoteCount:
+                minImdbRating:
                   type: number
                 action:
                   type: string
@@ -4988,11 +4988,14 @@ paths:
                 creditType:
                   type: string
                   enum: [cast, crew, both]
-                minVoteCount:
+                minImdbRating:
                   type: number
                 action:
                   type: string
                   enum: [request, notify]
+                backfill:
+                  type: boolean
+                  description: When true, resets tracked credits so the next sync re-processes all credits.
       responses:
         '200':
           description: Subscription updated

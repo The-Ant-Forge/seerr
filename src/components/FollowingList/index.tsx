@@ -45,7 +45,7 @@ interface ActorSubscription {
   profilePath: string | null;
   mediaFilter: string;
   creditType: string;
-  minVoteCount: number;
+  minImdbRating: number;
   action: string;
   createdAt: string;
   lastSyncedAt: string | null;
@@ -199,9 +199,9 @@ const FollowingList = () => {
                         ? intl.formatMessage(messages.actionRequest)
                         : intl.formatMessage(messages.actionNotify)}
                     </Badge>
-                    {sub.minVoteCount > 0 && (
+                    {sub.minImdbRating > 0 && (
                       <Badge badgeType="default">
-                        min votes: {sub.minVoteCount}
+                        IMDb ≥ {sub.minImdbRating}
                       </Badge>
                     )}
                   </div>

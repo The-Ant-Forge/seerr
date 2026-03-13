@@ -12,7 +12,7 @@ export class AddActorSubscriptions1773275799528 implements MigrationInterface {
         "profilePath" varchar,
         "mediaFilter" varchar NOT NULL DEFAULT ('all'),
         "creditType" varchar NOT NULL DEFAULT ('cast'),
-        "minVoteCount" integer NOT NULL DEFAULT (0),
+        "minImdbRating" float NOT NULL DEFAULT (0),
         "action" varchar NOT NULL DEFAULT ('request'),
         "knownCreditIds" text NOT NULL DEFAULT ('[]'),
         "createdAt" datetime NOT NULL DEFAULT (datetime('now')),

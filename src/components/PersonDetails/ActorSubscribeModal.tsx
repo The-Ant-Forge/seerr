@@ -1,5 +1,6 @@
 import Modal from '@app/components/Common/Modal';
 import defineMessages from '@app/utils/defineMessages';
+import { Transition } from '@headlessui/react';
 import axios from 'axios';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
@@ -18,9 +19,9 @@ const messages = defineMessages(
     creditTypeCast: 'Acting',
     creditTypeCrew: 'Crew',
     creditTypeBoth: 'Acting & Crew',
-    minVoteCountLabel: 'Minimum Vote Count',
-    minVoteCountHint:
-      'Filter out obscure titles with few votes. 0 = no filter.',
+    minImdbRatingLabel: 'Minimum IMDb Rating',
+    minImdbRatingHint:
+      'Only auto-request titles rated at or above this on IMDb (0–10). 0 = no filter.',
     actionLabel: 'When New Credits Appear',
     actionRequest: 'Auto-Request',
     actionNotify: 'Notify Only',
@@ -30,6 +31,11 @@ const messages = defineMessages(
     followSuccess: 'Now following {personName}',
     updateSuccess: 'Updated following for {personName}',
     unfollowSuccess: 'Unfollowed {personName}',
+    backfillLabel: 'Backfill existing credits',
+    backfillHint:
+      'Also request all existing credits for this person, not just future ones. This could generate a large number of requests.',
+    backfillHintEdit:
+      'Re-scan all credits on the next sync, including ones already processed. This could generate a large number of requests.',
     followFailed: 'Failed: {error}',
   }
 );
@@ -41,7 +47,7 @@ interface ActorSubscription {
   profilePath: string | null;
   mediaFilter: string;
   creditType: string;
-  minVoteCount: number;
+  minImdbRating: number;
   action: string;
   createdAt: string;
   lastSyncedAt: string | null;
@@ -69,8 +75,11 @@ const ActorSubscribeModal = ({
     existing?.mediaFilter ?? 'all'
   );
   const [creditType, setCreditType] = useState(existing?.creditType ?? 'cast');
-  const [minVoteCount, setMinVoteCount] = useState(existing?.minVoteCount ?? 0);
+  const [minImdbRating, setMinImdbRating] = useState(
+    existing?.minImdbRating ?? 0
+  );
   const [action, setAction] = useState(existing?.action ?? 'request');
+  const [backfill, setBackfill] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -80,8 +89,9 @@ const ActorSubscribeModal = ({
         await axios.put(`/api/v1/actorSubscription/${existing.id}`, {
           mediaFilter,
           creditType,
-          minVoteCount,
+          minImdbRating,
           action,
+          backfill,
         });
         addToast(intl.formatMessage(messages.updateSuccess, { personName }), {
           appearance: 'success',
@@ -92,8 +102,9 @@ const ActorSubscribeModal = ({
           personId,
           mediaFilter,
           creditType,
-          minVoteCount,
+          minImdbRating,
           action,
+          backfill,
         });
         addToast(intl.formatMessage(messages.followSuccess, { personName }), {
           appearance: 'success',
@@ -135,103 +146,139 @@ const ActorSubscribeModal = ({
   };
 
   return (
-    <Modal
-      title={intl.formatMessage(
-        existing ? messages.editTitle : messages.followTitle,
-        { personName }
-      )}
-      okText={intl.formatMessage(existing ? messages.update : messages.follow)}
-      okButtonType="primary"
-      onOk={handleSubmit}
-      okDisabled={isSubmitting}
-      onCancel={onClose}
-      secondaryText={
-        existing ? intl.formatMessage(messages.unfollow) : undefined
-      }
-      secondaryButtonType="danger"
-      onSecondary={existing ? handleUnfollow : undefined}
-      secondaryDisabled={isSubmitting}
+    <Transition
+      as="div"
+      appear
+      show
+      enter="transition-opacity duration-300"
+      enterFrom="opacity-0"
+      enterTo="opacity-100"
+      leave="transition-opacity duration-300"
+      leaveFrom="opacity-100"
+      leaveTo="opacity-0"
     >
-      <div className="space-y-4">
-        <div>
-          <label className="text-label">
-            {intl.formatMessage(messages.mediaFilterLabel)}
-          </label>
-          <select
-            className="rounded-only"
-            value={mediaFilter}
-            onChange={(e) => setMediaFilter(e.target.value)}
-          >
-            <option value="all">
-              {intl.formatMessage(messages.mediaFilterAll)}
-            </option>
-            <option value="movie">
-              {intl.formatMessage(messages.mediaFilterMovie)}
-            </option>
-            <option value="tv">
-              {intl.formatMessage(messages.mediaFilterTv)}
-            </option>
-          </select>
-        </div>
+      <Modal
+        title={intl.formatMessage(
+          existing ? messages.editTitle : messages.followTitle,
+          { personName }
+        )}
+        okText={intl.formatMessage(
+          existing ? messages.update : messages.follow
+        )}
+        okButtonType="primary"
+        onOk={handleSubmit}
+        okDisabled={isSubmitting}
+        onCancel={onClose}
+        secondaryText={
+          existing ? intl.formatMessage(messages.unfollow) : undefined
+        }
+        secondaryButtonType="danger"
+        onSecondary={existing ? handleUnfollow : undefined}
+        secondaryDisabled={isSubmitting}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="text-label">
+              {intl.formatMessage(messages.mediaFilterLabel)}
+            </label>
+            <select
+              className=""
+              value={mediaFilter}
+              onChange={(e) => setMediaFilter(e.target.value)}
+            >
+              <option value="all">
+                {intl.formatMessage(messages.mediaFilterAll)}
+              </option>
+              <option value="movie">
+                {intl.formatMessage(messages.mediaFilterMovie)}
+              </option>
+              <option value="tv">
+                {intl.formatMessage(messages.mediaFilterTv)}
+              </option>
+            </select>
+          </div>
 
-        <div>
-          <label className="text-label">
-            {intl.formatMessage(messages.creditTypeLabel)}
-          </label>
-          <select
-            className="rounded-only"
-            value={creditType}
-            onChange={(e) => setCreditType(e.target.value)}
-          >
-            <option value="cast">
-              {intl.formatMessage(messages.creditTypeCast)}
-            </option>
-            <option value="crew">
-              {intl.formatMessage(messages.creditTypeCrew)}
-            </option>
-            <option value="both">
-              {intl.formatMessage(messages.creditTypeBoth)}
-            </option>
-          </select>
-        </div>
+          <div>
+            <label className="text-label">
+              {intl.formatMessage(messages.creditTypeLabel)}
+            </label>
+            <select
+              className=""
+              value={creditType}
+              onChange={(e) => setCreditType(e.target.value)}
+            >
+              <option value="cast">
+                {intl.formatMessage(messages.creditTypeCast)}
+              </option>
+              <option value="crew">
+                {intl.formatMessage(messages.creditTypeCrew)}
+              </option>
+              <option value="both">
+                {intl.formatMessage(messages.creditTypeBoth)}
+              </option>
+            </select>
+          </div>
 
-        <div>
-          <label className="text-label">
-            {intl.formatMessage(messages.minVoteCountLabel)}
-          </label>
-          <input
-            type="number"
-            className="rounded-only"
-            min={0}
-            value={minVoteCount}
-            onChange={(e) =>
-              setMinVoteCount(Math.max(0, Number(e.target.value)))
-            }
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            {intl.formatMessage(messages.minVoteCountHint)}
-          </p>
-        </div>
+          <div>
+            <label className="text-label">
+              {intl.formatMessage(messages.minImdbRatingLabel)}
+            </label>
+            <input
+              type="number"
+              className=""
+              min={0}
+              max={10}
+              step={0.1}
+              value={minImdbRating}
+              onChange={(e) =>
+                setMinImdbRating(
+                  Math.min(10, Math.max(0, Number(e.target.value)))
+                )
+              }
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              {intl.formatMessage(messages.minImdbRatingHint)}
+            </p>
+          </div>
 
-        <div>
-          <label className="text-label">
-            {intl.formatMessage(messages.actionLabel)}
-          </label>
-          <select
-            className="rounded-only"
-            value={action}
-            onChange={(e) => setAction(e.target.value)}
-          >
-            <option value="request">
-              {intl.formatMessage(messages.actionRequest)}
-            </option>
-            <option value="notify">
-              {intl.formatMessage(messages.actionNotify)}
-            </option>
-          </select>
+          <div>
+            <label className="text-label">
+              {intl.formatMessage(messages.actionLabel)}
+            </label>
+            <select
+              className=""
+              value={action}
+              onChange={(e) => setAction(e.target.value)}
+            >
+              <option value="request">
+                {intl.formatMessage(messages.actionRequest)}
+              </option>
+              <option value="notify">
+                {intl.formatMessage(messages.actionNotify)}
+              </option>
+            </select>
+          </div>
+
+          <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3">
+            <label className="flex cursor-pointer items-center gap-3">
+              <input
+                type="checkbox"
+                checked={backfill}
+                onChange={(e) => setBackfill(e.target.checked)}
+              />
+              <span className="text-sm font-medium text-white">
+                {intl.formatMessage(messages.backfillLabel)}
+              </span>
+            </label>
+            <p className="mt-1 pl-9 text-xs text-yellow-200/70">
+              {intl.formatMessage(
+                existing ? messages.backfillHintEdit : messages.backfillHint
+              )}
+            </p>
+          </div>
         </div>
-      </div>
-    </Modal>
+      </Modal>
+    </Transition>
   );
 };
 

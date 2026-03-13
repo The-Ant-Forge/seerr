@@ -1,3 +1,4 @@
+import IMDBRadarrProxy from '@server/api/rating/imdbRadarrProxy';
 import TheMovieDb from '@server/api/themoviedb';
 import type {
   TmdbPersonCreditCast,
@@ -90,13 +91,6 @@ class ActorSubscriptionSync {
       );
     }
 
-    // Filter by minimum vote count
-    if (sub.minVoteCount > 0) {
-      relevantCredits = relevantCredits.filter(
-        (c) => c.vote_count >= sub.minVoteCount
-      );
-    }
-
     // Filter out adult content
     relevantCredits = relevantCredits.filter((c) => !c.adult);
 
@@ -121,6 +115,8 @@ class ActorSubscriptionSync {
         { type: 'or' }
       );
 
+      const imdbApi = sub.minImdbRating > 0 ? new IMDBRadarrProxy() : undefined;
+
       for (const credit of newCredits) {
         const title = credit.title || credit.name || 'Unknown';
         const mediaType =
@@ -139,6 +135,24 @@ class ActorSubscriptionSync {
               );
 
         if (sub.action === 'request' && canAutoRequest && canRequestType) {
+          // Check IMDb rating if a minimum is configured
+          if (imdbApi && sub.minImdbRating > 0) {
+            const meetsRating = await this.checkImdbRating(
+              credit,
+              mediaType,
+              sub.minImdbRating,
+              tmdb,
+              imdbApi
+            );
+            if (!meetsRating) {
+              logger.debug(
+                `Skipped "${title}" — below IMDb rating threshold (${sub.minImdbRating})`,
+                { label: 'Actor Subscription Sync' }
+              );
+              continue;
+            }
+          }
+
           await this.requestCredit(credit, mediaType, title, sub, tmdb);
         }
         // TODO: notify action — send notification via notificationManager
@@ -153,6 +167,46 @@ class ActorSubscriptionSync {
     sub.setKnownCreditIds(allCurrentIds);
     sub.lastSyncedAt = new Date();
     await repo.save(sub);
+  }
+
+  private async checkImdbRating(
+    credit: CombinedCredit,
+    mediaType: MediaType,
+    minRating: number,
+    tmdb: TheMovieDb,
+    imdbApi: IMDBRadarrProxy
+  ): Promise<boolean> {
+    try {
+      let imdbId: string | undefined;
+
+      if (mediaType === MediaType.MOVIE) {
+        const movie = await tmdb.getMovie({ movieId: credit.id });
+        imdbId = movie.imdb_id;
+      } else {
+        const tv = await tmdb.getTvShow({ tvId: credit.id });
+        imdbId = tv.external_ids?.imdb_id;
+      }
+
+      if (!imdbId) {
+        // No IMDb ID available — let it through (don't block on missing data)
+        return true;
+      }
+
+      const ratings = await imdbApi.getMovieRatings(imdbId);
+      if (!ratings) {
+        // No rating data available — let it through
+        return true;
+      }
+
+      return ratings.criticsScore >= minRating;
+    } catch (e) {
+      logger.debug(
+        `Could not check IMDb rating for credit ${credit.id}: ${(e as Error).message}`,
+        { label: 'Actor Subscription Sync' }
+      );
+      // On error, let it through rather than silently dropping
+      return true;
+    }
   }
 
   private async requestCredit(

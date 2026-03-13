@@ -53,7 +53,7 @@ const PersonDetails = () => {
     profilePath: string | null;
     mediaFilter: string;
     creditType: string;
-    minVoteCount: number;
+    minImdbRating: number;
     action: string;
     createdAt: string;
     lastSyncedAt: string | null;

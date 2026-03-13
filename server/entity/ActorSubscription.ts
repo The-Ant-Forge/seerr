@@ -36,8 +36,8 @@ export class ActorSubscription {
   @Column({ type: 'varchar', default: 'cast' })
   public creditType: CreditType;
 
-  @Column({ type: 'int', default: 0 })
-  public minVoteCount: number;
+  @Column({ type: 'float', default: 0 })
+  public minImdbRating: number;
 
   @Column({ type: 'varchar', default: 'request' })
   public action: SubscriptionAction;

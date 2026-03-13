@@ -25,7 +25,7 @@ Users can "follow" actors/people on TMDB. A daily scheduled job checks each foll
 | `profilePath` | varchar, nullable | — | Cached TMDB profile image path |
 | `mediaFilter` | varchar | `'all'` | `'all'` / `'movie'` / `'tv'` |
 | `creditType` | varchar | `'cast'` | `'cast'` / `'crew'` / `'both'` |
-| `minVoteCount` | int | `0` | Quality threshold (0 = no filter) |
+| `minImdbRating` | int | `0` | Quality threshold (0 = no filter) |
 | `action` | varchar | `'request'` | `'request'` / `'notify'` |
 | `knownCreditIds` | text | `'[]'` | JSON array of processed TMDB credit_id strings |
 | `subscribedBy` | FK → User | — | The user who created this subscription |
@@ -52,7 +52,7 @@ Unique constraint: `(personId, subscribedBy)` — one subscription per person pe
 - **Logic:**
   1. Load all subscriptions, group by personId
   2. For each unique person: one TMDB `getPersonCombinedCredits()` call
-  3. For each subscription: filter credits by mediaFilter, creditType, minVoteCount
+  3. For each subscription: filter credits by mediaFilter, creditType, minImdbRating
   4. Diff credit_ids against knownCreditIds to find new ones
   5. For new credits with action=request: check user has AUTO_REQUEST permission, call `MediaRequest.request({ isAutoRequest: true })`
   6. Update knownCreditIds with full current set, update lastSyncedAt
@@ -85,7 +85,7 @@ Unique constraint: `(personId, subscribedBy)` — one subscription per person pe
 
 ## Key Design Decisions
 
-1. **No billing `order` field** — TMDB combined_credits doesn't return it. Using `vote_count` as quality proxy instead.
+1. **No billing `order` field** — TMDB combined_credits doesn't return it. Using `IMDb rating` as quality proxy instead.
 2. **Credit ID tracking** — Stores all known credit_ids as JSON text. Seeded on creation to prevent back-catalog flood.
 3. **TMDB efficiency** — Groups subscriptions by personId for one API call per person, not per subscription.
 4. **Crew support** — Can follow someone as director/writer via creditType='crew'.

@@ -35,7 +35,7 @@ actorSubscriptionRoutes.get('/', async (req, res, next) => {
         profilePath: sub.profilePath,
         mediaFilter: sub.mediaFilter,
         creditType: sub.creditType,
-        minVoteCount: sub.minVoteCount,
+        minImdbRating: sub.minImdbRating,
         action: sub.action,
         createdAt: sub.createdAt,
         lastSyncedAt: sub.lastSyncedAt,
@@ -68,7 +68,7 @@ actorSubscriptionRoutes.get('/person/:personId', async (req, res, next) => {
       profilePath: sub.profilePath,
       mediaFilter: sub.mediaFilter,
       creditType: sub.creditType,
-      minVoteCount: sub.minVoteCount,
+      minImdbRating: sub.minImdbRating,
       action: sub.action,
       createdAt: sub.createdAt,
       lastSyncedAt: sub.lastSyncedAt,
@@ -85,14 +85,21 @@ actorSubscriptionRoutes.post('/', async (req, res, next) => {
       return next({ status: 401, message: 'Unauthorized' });
     }
 
-    const { personId, mediaFilter, creditType, minVoteCount, action } =
-      req.body as {
-        personId: number;
-        mediaFilter?: string;
-        creditType?: string;
-        minVoteCount?: number;
-        action?: string;
-      };
+    const {
+      personId,
+      mediaFilter,
+      creditType,
+      minImdbRating,
+      action,
+      backfill,
+    } = req.body as {
+      personId: number;
+      mediaFilter?: string;
+      creditType?: string;
+      minImdbRating?: number;
+      action?: string;
+      backfill?: boolean;
+    };
 
     if (!personId) {
       return next({ status: 400, message: 'personId is required' });
@@ -117,11 +124,15 @@ actorSubscriptionRoutes.post('/', async (req, res, next) => {
     const person = await tmdb.getPerson({ personId });
 
     // Seed knownCreditIds with all current credits so we don't request the back catalog
-    const credits = await tmdb.getPersonCombinedCredits({ personId });
-    const allCreditIds = [
-      ...credits.cast.map((c) => c.credit_id),
-      ...credits.crew.map((c) => c.credit_id),
-    ];
+    // Unless backfill is requested — then leave empty so the sync picks up everything
+    let allCreditIds: string[] = [];
+    if (!backfill) {
+      const credits = await tmdb.getPersonCombinedCredits({ personId });
+      allCreditIds = [
+        ...credits.cast.map((c) => c.credit_id),
+        ...credits.crew.map((c) => c.credit_id),
+      ];
+    }
 
     const sub = new ActorSubscription({
       personId,
@@ -129,7 +140,7 @@ actorSubscriptionRoutes.post('/', async (req, res, next) => {
       profilePath: person.profile_path ?? null,
       mediaFilter: (mediaFilter as 'all' | 'movie' | 'tv') ?? 'all',
       creditType: (creditType as 'cast' | 'crew' | 'both') ?? 'cast',
-      minVoteCount: minVoteCount ?? 0,
+      minImdbRating: minImdbRating ?? 0,
       action: (action as 'request' | 'notify') ?? 'request',
       subscribedBy: req.user,
     });
@@ -148,7 +159,7 @@ actorSubscriptionRoutes.post('/', async (req, res, next) => {
       profilePath: sub.profilePath,
       mediaFilter: sub.mediaFilter,
       creditType: sub.creditType,
-      minVoteCount: sub.minVoteCount,
+      minImdbRating: sub.minImdbRating,
       action: sub.action,
       createdAt: sub.createdAt,
       lastSyncedAt: sub.lastSyncedAt,
@@ -183,17 +194,20 @@ actorSubscriptionRoutes.put('/:id', async (req, res, next) => {
       return next({ status: 403, message: 'Not authorized' });
     }
 
-    const { mediaFilter, creditType, minVoteCount, action } = req.body as {
-      mediaFilter?: string;
-      creditType?: string;
-      minVoteCount?: number;
-      action?: string;
-    };
+    const { mediaFilter, creditType, minImdbRating, action, backfill } =
+      req.body as {
+        mediaFilter?: string;
+        creditType?: string;
+        minImdbRating?: number;
+        action?: string;
+        backfill?: boolean;
+      };
 
     if (mediaFilter) sub.mediaFilter = mediaFilter as 'all' | 'movie' | 'tv';
     if (creditType) sub.creditType = creditType as 'cast' | 'crew' | 'both';
-    if (minVoteCount !== undefined) sub.minVoteCount = minVoteCount;
+    if (minImdbRating !== undefined) sub.minImdbRating = minImdbRating;
     if (action) sub.action = action as 'request' | 'notify';
+    if (backfill) sub.setKnownCreditIds([]);
 
     await repo.save(sub);
 
@@ -204,7 +218,7 @@ actorSubscriptionRoutes.put('/:id', async (req, res, next) => {
       profilePath: sub.profilePath,
       mediaFilter: sub.mediaFilter,
       creditType: sub.creditType,
-      minVoteCount: sub.minVoteCount,
+      minImdbRating: sub.minImdbRating,
       action: sub.action,
       createdAt: sub.createdAt,
       lastSyncedAt: sub.lastSyncedAt,
