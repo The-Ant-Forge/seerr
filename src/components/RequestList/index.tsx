@@ -228,7 +228,7 @@ const RequestList = () => {
                 {intl.formatMessage(globalMessages.completed)}
               </option>
               <option value="processing">
-                {intl.formatMessage(globalMessages.processing)}
+                {intl.formatMessage(globalMessages.requested)}
               </option>
               <option value="failed">
                 {intl.formatMessage(globalMessages.failed)}
