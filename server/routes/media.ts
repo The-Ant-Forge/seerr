@@ -268,8 +268,10 @@ mediaRoutes.delete(
         });
       }
 
+      const deleteFiles = serviceSettings.deleteFiles ?? false;
+
       if (isMovie) {
-        await (service as RadarrAPI).removeMovie(media.tmdbId);
+        await (service as RadarrAPI).removeMovie(media.tmdbId, deleteFiles);
       } else {
         const tmdb = new TheMovieDb();
         const series = await tmdb.getTvShow({ tvId: media.tmdbId });
@@ -277,7 +279,7 @@ mediaRoutes.delete(
         if (!tvdbId) {
           throw new Error('TVDB ID not found');
         }
-        await (service as SonarrAPI).removeSeries(tvdbId);
+        await (service as SonarrAPI).removeSeries(tvdbId, deleteFiles);
       }
 
       return res.status(204).send();

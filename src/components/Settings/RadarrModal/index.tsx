@@ -63,6 +63,9 @@ const messages = defineMessages('components.Settings.RadarrModal', {
   tagRequests: 'Tag Requests',
   tagRequestsInfo:
     "Automatically add an additional tag with the requester's user ID & display name",
+  deleteFiles: 'Delete Files on Remove',
+  deleteFilesInfo:
+    'When removing a movie from Radarr via Seerr, also delete the files from disk',
   validationApplicationUrl: 'You must provide a valid URL',
   validationApplicationUrlTrailingSlash: 'URL must not end in a trailing slash',
   validationBaseUrlLeadingSlash: 'URL base must have a leading slash',
@@ -231,6 +234,7 @@ const RadarrModal = ({ onClose, radarr, onSave }: RadarrModalProps) => {
           syncEnabled: radarr?.syncEnabled ?? false,
           enableSearch: !radarr?.preventSearch,
           tagRequests: radarr?.tagRequests ?? false,
+          deleteFiles: radarr?.deleteFiles ?? false,
         }}
         validationSchema={RadarrSettingsSchema}
         onSubmit={async (values) => {
@@ -257,6 +261,7 @@ const RadarrModal = ({ onClose, radarr, onSave }: RadarrModalProps) => {
               syncEnabled: values.syncEnabled,
               preventSearch: !values.enableSearch,
               tagRequests: values.tagRequests,
+              deleteFiles: values.deleteFiles,
             };
             if (!radarr) {
               await axios.post('/api/v1/settings/radarr', submission);
@@ -727,6 +732,21 @@ const RadarrModal = ({ onClose, radarr, onSave }: RadarrModalProps) => {
                       type="checkbox"
                       id="tagRequests"
                       name="tagRequests"
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <label htmlFor="deleteFiles" className="checkbox-label">
+                    {intl.formatMessage(messages.deleteFiles)}
+                    <span className="label-tip">
+                      {intl.formatMessage(messages.deleteFilesInfo)}
+                    </span>
+                  </label>
+                  <div className="form-input-area">
+                    <Field
+                      type="checkbox"
+                      id="deleteFiles"
+                      name="deleteFiles"
                     />
                   </div>
                 </div>

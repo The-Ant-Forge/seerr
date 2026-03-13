@@ -405,12 +405,15 @@ class SonarrAPI extends ServarrBase<{
 
     return newSeasons;
   }
-  public removeSeries = async (serieId: number): Promise<void> => {
+  public removeSeries = async (
+    serieId: number,
+    deleteFiles = false
+  ): Promise<void> => {
     try {
       const { id, title } = await this.getSeriesByTvdbId(serieId);
       await this.axios.delete(`/series/${id}`, {
         params: {
-          deleteFiles: true,
+          deleteFiles,
           addImportExclusion: false,
         },
       });

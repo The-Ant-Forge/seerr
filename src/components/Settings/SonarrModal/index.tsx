@@ -70,6 +70,9 @@ const messages = defineMessages('components.Settings.SonarrModal', {
   tagRequests: 'Tag Requests',
   tagRequestsInfo:
     "Automatically add an additional tag with the requester's user ID & display name",
+  deleteFiles: 'Delete Files on Remove',
+  deleteFilesInfo:
+    'When removing a series from Sonarr via Seerr, also delete the files from disk',
   validationApplicationUrl: 'You must provide a valid URL',
   validationApplicationUrlTrailingSlash: 'URL must not end in a trailing slash',
   validationBaseUrlLeadingSlash: 'Base URL must have a leading slash',
@@ -248,6 +251,7 @@ const SonarrModal = ({ onClose, sonarr, onSave }: SonarrModalProps) => {
           syncEnabled: sonarr?.syncEnabled ?? false,
           enableSearch: !sonarr?.preventSearch,
           tagRequests: sonarr?.tagRequests ?? false,
+          deleteFiles: sonarr?.deleteFiles ?? false,
           monitorNewItems: sonarr?.monitorNewItems ?? 'all',
         }}
         validationSchema={SonarrSettingsSchema}
@@ -292,6 +296,7 @@ const SonarrModal = ({ onClose, sonarr, onSave }: SonarrModalProps) => {
               syncEnabled: values.syncEnabled,
               preventSearch: !values.enableSearch,
               tagRequests: values.tagRequests,
+              deleteFiles: values.deleteFiles,
               monitorNewItems: values.monitorNewItems,
             };
             if (!sonarr) {
@@ -1052,6 +1057,21 @@ const SonarrModal = ({ onClose, sonarr, onSave }: SonarrModalProps) => {
                       type="checkbox"
                       id="tagRequests"
                       name="tagRequests"
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <label htmlFor="deleteFiles" className="checkbox-label">
+                    {intl.formatMessage(messages.deleteFiles)}
+                    <span className="label-tip">
+                      {intl.formatMessage(messages.deleteFilesInfo)}
+                    </span>
+                  </label>
+                  <div className="form-input-area">
+                    <Field
+                      type="checkbox"
+                      id="deleteFiles"
+                      name="deleteFiles"
                     />
                   </div>
                 </div>
