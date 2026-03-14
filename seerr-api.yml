@@ -6568,6 +6568,29 @@ paths:
                     type: number
                   completed:
                     type: number
+  /request/resync:
+    post:
+      summary: Resync requests with Radarr/Sonarr
+      description: |
+        Checks all approved/processing requests against Radarr/Sonarr to detect orphaned requests
+        where the media no longer exists in the service. Updates status of orphaned requests to failed.
+        Requires the `MANAGE_REQUESTS` permission.
+      tags:
+        - request
+      responses:
+        '200':
+          description: Resync results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  synced:
+                    type: number
+                    example: 3
+                  failed:
+                    type: number
+                    example: 0
   /request/{requestId}:
     get:
       summary: Get MediaRequest
@@ -7222,6 +7245,46 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/MediaInfo'
+  /media/bulk-remove:
+    post:
+      summary: Bulk remove media items
+      description: |
+        Removes multiple media items from Radarr/Sonarr and deletes them from Seerr.
+        Requires the `MANAGE_REQUESTS` permission.
+      tags:
+        - media
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mediaIds
+              properties:
+                mediaIds:
+                  type: array
+                  items:
+                    type: number
+                  example: [1, 2, 3]
+      responses:
+        '200':
+          description: Bulk remove results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  removed:
+                    type: number
+                    example: 2
+                  failed:
+                    type: number
+                    example: 1
+                  errors:
+                    type: array
+                    items:
+                      type: string
   /media/{mediaId}:
     delete:
       summary: Delete media item

@@ -59,8 +59,13 @@ requestRoutes.get<Record<string, unknown>, RequestResultsResponse>(
         case 'failed':
           statusFilter = [MediaRequestStatus.FAILED];
           break;
-        case 'completed':
         case 'available':
+          statusFilter = [
+            MediaRequestStatus.APPROVED,
+            MediaRequestStatus.COMPLETED,
+          ];
+          break;
+        case 'completed':
         case 'deleted':
           statusFilter = [MediaRequestStatus.COMPLETED];
           break;
