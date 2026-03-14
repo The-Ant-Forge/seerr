@@ -63,14 +63,31 @@ class WatchlistSync {
 
     const plexTvApi = new PlexTvAPI(user.plexToken);
 
-    const response = await plexTvApi.getWatchlist({ size: 20 });
+    // Fetch all watchlist items, paginating if necessary
+    const allItems: Awaited<ReturnType<PlexTvAPI['getWatchlist']>>['items'] =
+      [];
+    const pageSize = 50;
+    let offset = 0;
+    let totalSize = 0;
+
+    do {
+      const response = await plexTvApi.getWatchlist({
+        size: pageSize,
+        offset,
+      });
+      allItems.push(...response.items);
+      totalSize = response.totalSize;
+      offset += pageSize;
+    } while (offset < totalSize);
+
+    if (allItems.length === 0) return;
 
     const mediaItems = await Media.getRelatedMedia(
       user,
-      response.items.map((i) => i.tmdbId)
+      allItems.map((i) => i.tmdbId)
     );
 
-    const watchlistTmdbIds = response.items.map((i) => i.tmdbId);
+    const watchlistTmdbIds = allItems.map((i) => i.tmdbId);
 
     const requestRepository = getRepository(MediaRequest);
     const existingAutoRequests = await requestRepository
@@ -87,7 +104,7 @@ class WatchlistSync {
         .map((r) => `${r.media.mediaType}:${r.media.tmdbId}`)
     );
 
-    const unavailableItems = response.items.filter(
+    const unavailableItems = allItems.filter(
       (i) =>
         !autoRequestedTmdbIds.has(
           `${i.type === 'show' ? MediaType.TV : MediaType.MOVIE}:${i.tmdbId}`
