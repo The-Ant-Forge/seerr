@@ -293,6 +293,111 @@ mediaRoutes.delete(
   }
 );
 
+mediaRoutes.post(
+  '/bulk-remove',
+  isAuthenticated(Permission.MANAGE_REQUESTS),
+  async (req, res, next) => {
+    try {
+      const { mediaIds } = req.body as { mediaIds: number[] };
+
+      if (!Array.isArray(mediaIds) || mediaIds.length === 0) {
+        return res
+          .status(400)
+          .json({ message: 'mediaIds must be a non-empty array' });
+      }
+
+      const settings = getSettings();
+      const mediaRepository = getRepository(Media);
+      const tmdb = new TheMovieDb();
+
+      let removed = 0;
+      let failed = 0;
+      const errors: string[] = [];
+
+      for (const mediaId of mediaIds) {
+        try {
+          const media = await mediaRepository.findOneOrFail({
+            where: { id: mediaId },
+          });
+
+          const isMovie = media.mediaType === MediaType.MOVIE;
+
+          // Try to remove from Radarr/Sonarr for both standard and 4K
+          for (const is4k of [false, true]) {
+            const serviceId = is4k ? media.serviceId4k : media.serviceId;
+            if (!serviceId) continue;
+
+            let serviceSettings;
+            if (isMovie) {
+              serviceSettings = settings.radarr.find((r) => r.id === serviceId);
+            } else {
+              serviceSettings = settings.sonarr.find((s) => s.id === serviceId);
+            }
+
+            if (!serviceSettings) continue;
+
+            const deleteFiles = serviceSettings.deleteFiles ?? false;
+
+            try {
+              if (isMovie) {
+                const radarrApi = new RadarrAPI({
+                  apiKey: serviceSettings.apiKey,
+                  url: RadarrAPI.buildUrl(serviceSettings, '/api/v3'),
+                });
+                await radarrApi.removeMovie(media.tmdbId, deleteFiles);
+              } else {
+                const sonarrApi = new SonarrAPI({
+                  apiKey: serviceSettings.apiKey,
+                  url: SonarrAPI.buildUrl(serviceSettings, '/api/v3'),
+                });
+                const series = await tmdb.getTvShow({ tvId: media.tmdbId });
+                const tvdbId = series.external_ids.tvdb_id ?? media.tvdbId;
+                if (tvdbId) {
+                  await sonarrApi.removeSeries(tvdbId, deleteFiles);
+                }
+              }
+            } catch (e) {
+              // Service removal failed — log but continue with Seerr cleanup
+              logger.warn(
+                `Bulk remove: failed to remove media ${mediaId} from ${isMovie ? 'Radarr' : 'Sonarr'}: ${e.message}`,
+                { label: 'Bulk Remove' }
+              );
+            }
+          }
+
+          // Delete the Seerr media record (cascades to requests)
+          await mediaRepository.remove(media);
+          removed++;
+        } catch (e) {
+          failed++;
+          errors.push(`Media ${mediaId}: ${e.message}`);
+          logger.warn(
+            `Bulk remove: failed to process media ${mediaId}: ${e.message}`,
+            {
+              label: 'Bulk Remove',
+            }
+          );
+        }
+      }
+
+      logger.info(
+        `Bulk remove complete: ${removed} removed, ${failed} failed`,
+        {
+          label: 'Bulk Remove',
+        }
+      );
+
+      return res.status(200).json({ removed, failed, errors });
+    } catch (e) {
+      logger.error('Error during bulk remove', {
+        label: 'Bulk Remove',
+        errorMessage: e.message,
+      });
+      next({ status: 500, message: 'Bulk remove failed.' });
+    }
+  }
+);
+
 mediaRoutes.get<{ id: string }, MediaWatchDataResponse>(
   '/:id/watch_data',
   isAuthenticated(Permission.ADMIN),

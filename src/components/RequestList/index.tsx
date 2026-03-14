@@ -1,4 +1,5 @@
 import Button from '@app/components/Common/Button';
+import ConfirmButton from '@app/components/Common/ConfirmButton';
 import Header from '@app/components/Common/Header';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
 import PageTitle from '@app/components/Common/PageTitle';
@@ -18,6 +19,7 @@ import {
   ChevronRightIcon,
   CircleStackIcon,
   FunnelIcon,
+  TrashIcon,
 } from '@heroicons/react/24/solid';
 import type { RequestResultsResponse } from '@server/interfaces/api/requestInterfaces';
 import axios from 'axios';
@@ -40,6 +42,11 @@ const messages = defineMessages('components.RequestList', {
   resyncRunning: 'Syncing…',
   resyncSuccess: 'Resync complete: {synced} OK, {failed} orphaned',
   resyncFailed: 'Resync failed. Check logs for details.',
+  removeAll: 'Remove All ({count})',
+  removeAllConfirm: 'Confirm Remove All?',
+  removeAllRunning: 'Removing…',
+  removeAllSuccess: '{removed} removed, {failed} failed',
+  removeAllFailed: 'Bulk remove failed. Check logs for details.',
 });
 
 enum Filter {
@@ -69,6 +76,7 @@ const RequestList = () => {
   });
   const { user: currentUser, hasPermission } = useUser();
   const [isResyncing, setIsResyncing] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
   const [currentFilter, setCurrentFilter] = useState<Filter>(Filter.PENDING);
   const [currentSort, setCurrentSort] = useState<Sort>('added');
   const [currentMediaType, setCurrentMediaType] = useState<string>('all');
@@ -299,53 +307,116 @@ const RequestList = () => {
             </Tooltip>
           </div>
           {hasPermission(Permission.MANAGE_REQUESTS) && (
-            <Tooltip content={intl.formatMessage(messages.resync)}>
-              <Button
-                buttonType="default"
-                className="mb-2 ml-0 sm:mb-0 sm:ml-2"
-                buttonSize="md"
-                disabled={isResyncing}
-                onClick={async () => {
-                  setIsResyncing(true);
-                  try {
-                    const { data: result } = await axios.post<{
-                      synced: number;
-                      failed: number;
-                    }>('/api/v1/request/resync');
-                    addToast(
-                      intl.formatMessage(messages.resyncSuccess, {
-                        synced: result.synced,
-                        failed: result.failed,
-                      }),
-                      {
+            <>
+              <Tooltip content={intl.formatMessage(messages.resync)}>
+                <Button
+                  buttonType="default"
+                  className="mb-2 ml-0 sm:mb-0 sm:ml-2"
+                  buttonSize="md"
+                  disabled={isResyncing}
+                  onClick={async () => {
+                    setIsResyncing(true);
+                    try {
+                      const { data: result } = await axios.post<{
+                        synced: number;
+                        failed: number;
+                      }>('/api/v1/request/resync');
+                      addToast(
+                        intl.formatMessage(messages.resyncSuccess, {
+                          synced: result.synced,
+                          failed: result.failed,
+                        }),
+                        {
+                          autoDismiss: true,
+                          appearance: result.failed > 0 ? 'warning' : 'success',
+                        }
+                      );
+                      revalidate();
+                    } catch {
+                      addToast(intl.formatMessage(messages.resyncFailed), {
                         autoDismiss: true,
-                        appearance: result.failed > 0 ? 'warning' : 'success',
-                      }
-                    );
-                    revalidate();
-                  } catch {
-                    addToast(intl.formatMessage(messages.resyncFailed), {
-                      autoDismiss: true,
-                      appearance: 'error',
-                    });
-                  } finally {
-                    setIsResyncing(false);
+                        appearance: 'error',
+                      });
+                    } finally {
+                      setIsResyncing(false);
+                    }
+                  }}
+                >
+                  <ArrowPathIcon
+                    className={`h-5 w-5 ${isResyncing ? 'animate-spin' : ''}`}
+                    style={
+                      isResyncing
+                        ? { animationDirection: 'reverse' }
+                        : undefined
+                    }
+                  />
+                  <span>
+                    {intl.formatMessage(
+                      isResyncing ? messages.resyncRunning : messages.resync
+                    )}
+                  </span>
+                </Button>
+              </Tooltip>
+              {data.results.some((r) => r.canRemove) && (
+                <ConfirmButton
+                  className="mb-2 ml-0 sm:mb-0 sm:ml-2"
+                  confirmText={
+                    isRemoving
+                      ? intl.formatMessage(messages.removeAllRunning)
+                      : intl.formatMessage(messages.removeAllConfirm)
                   }
-                }}
-              >
-                <ArrowPathIcon
-                  className={`h-5 w-5 ${isResyncing ? 'animate-spin' : ''}`}
-                  style={
-                    isResyncing ? { animationDirection: 'reverse' } : undefined
-                  }
-                />
-                <span>
-                  {intl.formatMessage(
-                    isResyncing ? messages.resyncRunning : messages.resync
-                  )}
-                </span>
-              </Button>
-            </Tooltip>
+                  onClick={async () => {
+                    setIsRemoving(true);
+                    try {
+                      const removableIds = [
+                        ...new Set(
+                          data.results
+                            .filter((r) => r.canRemove)
+                            .map((r) => r.media.id)
+                        ),
+                      ];
+                      const { data: result } = await axios.post<{
+                        removed: number;
+                        failed: number;
+                      }>('/api/v1/media/bulk-remove', {
+                        mediaIds: removableIds,
+                      });
+                      addToast(
+                        intl.formatMessage(messages.removeAllSuccess, {
+                          removed: result.removed,
+                          failed: result.failed,
+                        }),
+                        {
+                          autoDismiss: true,
+                          appearance: result.failed > 0 ? 'warning' : 'success',
+                        }
+                      );
+                      revalidate();
+                    } catch {
+                      addToast(intl.formatMessage(messages.removeAllFailed), {
+                        autoDismiss: true,
+                        appearance: 'error',
+                      });
+                    } finally {
+                      setIsRemoving(false);
+                    }
+                  }}
+                >
+                  <TrashIcon className="h-5 w-5" />
+                  <span>
+                    {intl.formatMessage(messages.removeAll, {
+                      count: [
+                        ...new Set(
+                          data.results
+                            .filter((r) => r.canRemove)
+                            .map((r) => r.media.id)
+                        ),
+                      ].length,
+                    })}
+                  </span>
+                </ConfirmButton>
+              )}
+            </>
           )}
         </div>
       </div>
