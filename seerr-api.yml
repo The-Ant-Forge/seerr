@@ -3291,6 +3291,24 @@ paths:
                     timestamp:
                       type: string
                       example: '2020-12-15T16:20:00.069Z'
+    delete:
+      summary: Clear logs
+      description: Deletes all log files from the server. Requires admin permissions.
+      tags:
+        - settings
+      responses:
+        '200':
+          description: Logs cleared successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logs cleared.
+        '500':
+          description: Failed to clear logs
   /settings/notifications/email:
     get:
       summary: Get email notification settings

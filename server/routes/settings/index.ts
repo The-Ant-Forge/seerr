@@ -667,6 +667,47 @@ settingsRoutes.get(
   }
 );
 
+settingsRoutes.delete(
+  '/logs',
+  isAuthenticated(Permission.ADMIN),
+  (_req, res, next) => {
+    try {
+      const logDir = process.env.CONFIG_DIRECTORY
+        ? `${process.env.CONFIG_DIRECTORY}/logs`
+        : path.join(__dirname, '../../../config/logs');
+
+      if (!fs.existsSync(logDir)) {
+        return res.status(200).json({ message: 'No logs to clear.' });
+      }
+
+      const logFiles = fs.readdirSync(logDir);
+
+      for (const file of logFiles) {
+        const filePath = path.join(logDir, file);
+        try {
+          const stat = fs.lstatSync(filePath);
+          // Only delete regular files, not symlinks or directories
+          if (stat.isFile()) {
+            fs.unlinkSync(filePath);
+          }
+        } catch {
+          // Skip files that can't be deleted (e.g., locked by logger)
+        }
+      }
+
+      logger.info('Logs cleared by admin', { label: 'Logs' });
+
+      return res.status(200).json({ message: 'Logs cleared.' });
+    } catch (e) {
+      logger.error('Failed to clear logs', {
+        label: 'Logs',
+        errorMessage: (e as Error).message,
+      });
+      return next({ status: 500, message: 'Failed to clear logs.' });
+    }
+  }
+);
+
 settingsRoutes.get('/jobs', (_req, res) => {
   return res.status(200).json(
     scheduledJobs.map((job) => ({

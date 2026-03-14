@@ -1,5 +1,6 @@
 import Badge from '@app/components/Common/Badge';
 import Button from '@app/components/Common/Button';
+import ConfirmButton from '@app/components/Common/ConfirmButton';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
 import Modal from '@app/components/Common/Modal';
 import PageTitle from '@app/components/Common/PageTitle';
@@ -20,11 +21,13 @@ import {
   MagnifyingGlassIcon,
   PauseIcon,
   PlayIcon,
+  TrashIcon,
 } from '@heroicons/react/24/solid';
 import type {
   LogMessage,
   LogsResultsResponse,
 } from '@server/interfaces/api/settingsInterfaces';
+import axios from 'axios';
 import { useRouter } from 'next/router';
 import { Fragment, useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
@@ -51,6 +54,9 @@ const messages = defineMessages('components.Settings.SettingsLogs', {
   extraData: 'Additional Data',
   copiedLogMessage: 'Copied log message to clipboard.',
   viewdetails: 'View Details',
+  clearLogs: 'Clear Logs',
+  logsCleared: 'Logs cleared successfully.',
+  logsClearFailed: 'Failed to clear logs.',
 });
 
 type Filter = 'debug' | 'info' | 'warn' | 'error';
@@ -77,7 +83,7 @@ const SettingsLogs = () => {
     setRefreshInterval(refreshInterval === 5000 ? 0 : 5000);
   };
 
-  const { data, error } = useSWR<LogsResultsResponse>(
+  const { data, error, mutate } = useSWR<LogsResultsResponse>(
     `/api/v1/settings/logs?take=${currentPageSize}&skip=${
       pageIndex * currentPageSize
     }&filter=${currentFilter}${
@@ -276,6 +282,28 @@ const SettingsLogs = () => {
                 )}
               </span>
             </Button>
+            <ConfirmButton
+              className="mr-2 flex flex-grow"
+              onClick={async () => {
+                try {
+                  await axios.delete('/api/v1/settings/logs');
+                  addToast(intl.formatMessage(messages.logsCleared), {
+                    appearance: 'success',
+                    autoDismiss: true,
+                  });
+                  mutate();
+                } catch {
+                  addToast(intl.formatMessage(messages.logsClearFailed), {
+                    appearance: 'error',
+                    autoDismiss: true,
+                  });
+                }
+              }}
+              confirmText={intl.formatMessage(messages.clearLogs)}
+            >
+              <TrashIcon />
+              <span>{intl.formatMessage(messages.clearLogs)}</span>
+            </ConfirmButton>
             <div className="flex flex-grow">
               <span className="inline-flex cursor-default items-center rounded-l-md border border-r-0 border-gray-500 bg-gray-800 px-3 text-sm text-gray-100">
                 <FunnelIcon className="h-6 w-6" />
