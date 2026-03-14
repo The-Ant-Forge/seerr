@@ -159,6 +159,14 @@ export class MediaRequest {
           throw new BlocklistedMediaError('This media is blocklisted.');
         }
 
+        // Skip if media is already available for the requested quality track
+        const currentStatus = requestBody.is4k ? media.status4k : media.status;
+        if (currentStatus === MediaStatus.AVAILABLE) {
+          throw new DuplicateMediaRequestError(
+            'This media is already available.'
+          );
+        }
+
         if (media.status === MediaStatus.UNKNOWN && !requestBody.is4k) {
           media.status = MediaStatus.PENDING;
         }

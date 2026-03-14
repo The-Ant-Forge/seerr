@@ -357,7 +357,7 @@ const RequestList = () => {
                   </span>
                 </Button>
               </Tooltip>
-              {data.results.some((r) => r.canRemove) && (
+              {data.results.length > 0 && (
                 <ConfirmButton
                   className="mb-2 ml-0 sm:mb-0 sm:ml-2"
                   confirmText={
@@ -368,18 +368,14 @@ const RequestList = () => {
                   onClick={async () => {
                     setIsRemoving(true);
                     try {
-                      const removableIds = [
-                        ...new Set(
-                          data.results
-                            .filter((r) => r.canRemove)
-                            .map((r) => r.media.id)
-                        ),
+                      const mediaIds = [
+                        ...new Set(data.results.map((r) => r.media.id)),
                       ];
                       const { data: result } = await axios.post<{
                         removed: number;
                         failed: number;
                       }>('/api/v1/media/bulk-remove', {
-                        mediaIds: removableIds,
+                        mediaIds,
                       });
                       addToast(
                         intl.formatMessage(messages.removeAllSuccess, {
@@ -405,13 +401,8 @@ const RequestList = () => {
                   <TrashIcon className="h-5 w-5" />
                   <span>
                     {intl.formatMessage(messages.removeAll, {
-                      count: [
-                        ...new Set(
-                          data.results
-                            .filter((r) => r.canRemove)
-                            .map((r) => r.media.id)
-                        ),
-                      ].length,
+                      count: [...new Set(data.results.map((r) => r.media.id))]
+                        .length,
                     })}
                   </span>
                 </ConfirmButton>
