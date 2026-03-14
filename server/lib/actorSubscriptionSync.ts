@@ -20,6 +20,10 @@ import { Permission } from './permissions';
 
 type CombinedCredit = TmdbPersonCreditCast | TmdbPersonCreditCrew;
 
+// 'pass' = meets threshold, 'fail' = below threshold or old unrated junk,
+// 'pending' = no rating yet but content is recent/upcoming (retry later)
+type RatingResult = 'pass' | 'fail' | 'pending';
+
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -94,10 +98,21 @@ class ActorSubscriptionSync {
     // Filter out adult content
     relevantCredits = relevantCredits.filter((c) => !c.adult);
 
+    // Filter out "Self" cast credits (interviews, behind-the-scenes, awards, etc.)
+    const selfPattern = /\bself\b|\bhimself\b|\bherself\b|\bthemselves\b/i;
+    relevantCredits = relevantCredits.filter((c) => {
+      if ('character' in c && selfPattern.test(c.character)) {
+        return false;
+      }
+      return true;
+    });
+
     // Find new credits
     const newCredits = relevantCredits.filter(
       (c) => !knownIds.has(c.credit_id)
     );
+
+    const pendingCreditIds: string[] = [];
 
     if (newCredits.length > 0) {
       logger.info(
@@ -115,7 +130,7 @@ class ActorSubscriptionSync {
         { type: 'or' }
       );
 
-      const imdbApi = sub.minImdbRating > 0 ? new IMDBRadarrProxy() : undefined;
+      const imdbApi = new IMDBRadarrProxy();
 
       for (const credit of newCredits) {
         const title = credit.title || credit.name || 'Unknown';
@@ -135,22 +150,31 @@ class ActorSubscriptionSync {
               );
 
         if (sub.action === 'request' && canAutoRequest && canRequestType) {
-          // Check IMDb rating if a minimum is configured
-          if (imdbApi && sub.minImdbRating > 0) {
-            const meetsRating = await this.checkImdbRating(
-              credit,
-              mediaType,
-              sub.minImdbRating,
-              tmdb,
-              imdbApi
+          // Always check IMDb rating — filters junk and enforces minimum
+          const ratingResult = await this.checkImdbRating(
+            credit,
+            mediaType,
+            sub.minImdbRating,
+            tmdb,
+            imdbApi
+          );
+
+          if (ratingResult === 'pending') {
+            // No rating yet but content is recent/upcoming — retry next sync
+            pendingCreditIds.push(credit.credit_id);
+            logger.debug(
+              `Deferred "${title}" — no rating yet, will retry later`,
+              { label: 'Actor Subscription Sync' }
             );
-            if (!meetsRating) {
-              logger.debug(
-                `Skipped "${title}" — below IMDb rating threshold (${sub.minImdbRating})`,
-                { label: 'Actor Subscription Sync' }
-              );
-              continue;
-            }
+            continue;
+          }
+
+          if (ratingResult === 'fail') {
+            logger.debug(
+              `Skipped "${title}" — below IMDb rating threshold (${sub.minImdbRating}) or unrated old content`,
+              { label: 'Actor Subscription Sync' }
+            );
+            continue;
           }
 
           await this.requestCredit(credit, mediaType, title, sub, tmdb);
@@ -159,11 +183,13 @@ class ActorSubscriptionSync {
       }
     }
 
-    // Update known credit IDs with ALL current credits (not just filtered ones)
+    // Update known credit IDs with ALL current credits, EXCEPT pending ones
+    // so they get retried on the next sync cycle
+    const pendingSet = new Set(pendingCreditIds);
     const allCurrentIds = [
       ...allCast.map((c) => c.credit_id),
       ...allCrew.map((c) => c.credit_id),
-    ];
+    ].filter((id) => !pendingSet.has(id));
     sub.setKnownCreditIds(allCurrentIds);
     sub.lastSyncedAt = new Date();
     await repo.save(sub);
@@ -175,7 +201,7 @@ class ActorSubscriptionSync {
     minRating: number,
     tmdb: TheMovieDb,
     imdbApi: IMDBRadarrProxy
-  ): Promise<boolean> {
+  ): Promise<RatingResult> {
     try {
       let imdbId: string | undefined;
 
@@ -187,25 +213,41 @@ class ActorSubscriptionSync {
         imdbId = tv.external_ids?.imdb_id;
       }
 
+      // Determine release date for age check
+      const releaseStr =
+        mediaType === MediaType.MOVIE
+          ? credit.release_date
+          : credit.first_air_date;
+      const releaseDate = releaseStr ? new Date(releaseStr) : null;
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      const isRecentOrUpcoming = !releaseDate || releaseDate > oneMonthAgo;
+
       if (!imdbId) {
-        // No IMDb ID available — let it through (don't block on missing data)
-        return true;
+        // No IMDb ID — if recent/upcoming, retry later; otherwise it's junk
+        return isRecentOrUpcoming ? 'pending' : 'fail';
       }
 
       const ratings = await imdbApi.getMovieRatings(imdbId);
-      if (!ratings) {
-        // No rating data available — let it through
-        return true;
+
+      if (!ratings || ratings.criticsScore === 0) {
+        // No rating data — if recent/upcoming, retry later; otherwise it's junk
+        return isRecentOrUpcoming ? 'pending' : 'fail';
       }
 
-      return ratings.criticsScore >= minRating;
+      // Has a rating — check against minimum threshold (0 = no minimum)
+      if (minRating > 0 && ratings.criticsScore < minRating) {
+        return 'fail';
+      }
+
+      return 'pass';
     } catch (e) {
       logger.debug(
         `Could not check IMDb rating for credit ${credit.id}: ${(e as Error).message}`,
         { label: 'Actor Subscription Sync' }
       );
-      // On error, let it through rather than silently dropping
-      return true;
+      // On error, treat as pending so we retry rather than silently dropping
+      return 'pending';
     }
   }
 
