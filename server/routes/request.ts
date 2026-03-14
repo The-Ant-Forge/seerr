@@ -684,4 +684,114 @@ requestRoutes.post<{
   }
 );
 
+requestRoutes.post(
+  '/resync',
+  isAuthenticated(Permission.MANAGE_REQUESTS),
+  async (_req, res, next) => {
+    try {
+      const settings = getSettings();
+      const requestRepository = getRepository(MediaRequest);
+      const mediaRepository = getRepository(Media);
+
+      // Find all approved requests with their media
+      const approvedRequests = await requestRepository.find({
+        where: { status: MediaRequestStatus.APPROVED },
+        relations: { media: true, requestedBy: true, modifiedBy: true },
+      });
+
+      let synced = 0;
+      let failed = 0;
+
+      for (const request of approvedRequests) {
+        const media = request.media;
+        if (!media) continue;
+
+        const is4k = request.is4k;
+        const serviceId = is4k ? media.serviceId4k : media.serviceId;
+        const externalId = is4k
+          ? media.externalServiceId4k
+          : media.externalServiceId;
+
+        // No service tracking → nothing to check
+        if (!serviceId || !externalId) {
+          synced++;
+          continue;
+        }
+
+        let found = false;
+
+        try {
+          if (media.mediaType === MediaType.MOVIE) {
+            const server = settings.radarr.find((r) => r.id === serviceId);
+            if (server) {
+              const radarrApi = new RadarrAPI({
+                apiKey: server.apiKey,
+                url: RadarrAPI.buildUrl(server, '/api/v3'),
+              });
+              await radarrApi.getMovie({ id: externalId });
+              found = true;
+            }
+          } else {
+            const server = settings.sonarr.find((s) => s.id === serviceId);
+            if (server) {
+              const sonarrApi = new SonarrAPI({
+                apiKey: server.apiKey,
+                url: SonarrAPI.buildUrl(server, '/api/v3'),
+              });
+              await sonarrApi.getSeriesById(externalId);
+              found = true;
+            }
+          }
+        } catch {
+          // API call failed → item not in Radarr/Sonarr
+          found = false;
+        }
+
+        if (found) {
+          synced++;
+        } else {
+          request.status = MediaRequestStatus.FAILED;
+          await requestRepository.save(request);
+
+          // Also reset media status if no other approved requests remain
+          const otherApproved = await requestRepository.count({
+            where: {
+              media: { id: media.id },
+              status: MediaRequestStatus.APPROVED,
+            },
+          });
+          if (otherApproved === 0) {
+            const status = is4k ? 'status4k' : 'status';
+            if (
+              media[status] === MediaStatus.PROCESSING ||
+              media[status] === MediaStatus.PENDING
+            ) {
+              media[status] = MediaStatus.UNKNOWN;
+              await mediaRepository.save(media);
+            }
+          }
+
+          failed++;
+          logger.warn(
+            `Resync: marked request #${request.id} as failed — ${media.mediaType} (TMDB ${media.tmdbId}) not found in ${media.mediaType === MediaType.MOVIE ? 'Radarr' : 'Sonarr'}`,
+            { label: 'Request Resync' }
+          );
+        }
+      }
+
+      logger.info(`Resync complete: ${synced} OK, ${failed} orphaned`, {
+        label: 'Request Resync',
+      });
+
+      return res.status(200).json({ synced, failed });
+    } catch (e) {
+      logger.error('Error during request resync', {
+        label: 'Request Resync',
+        errorMessage: e.message,
+      });
+      next({ status: 500, message: 'Resync failed.' });
+    }
+  }
+);
+
 export default requestRoutes;

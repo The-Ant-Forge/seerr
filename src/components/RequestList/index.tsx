@@ -11,6 +11,7 @@ import defineMessages from '@app/utils/defineMessages';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import {
   ArrowDownIcon,
+  ArrowPathIcon,
   ArrowUpIcon,
   Bars3BottomLeftIcon,
   ChevronLeftIcon,
@@ -19,10 +20,12 @@ import {
   FunnelIcon,
 } from '@heroicons/react/24/solid';
 import type { RequestResultsResponse } from '@server/interfaces/api/requestInterfaces';
+import axios from 'axios';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
+import { useToasts } from 'react-toast-notifications';
 import useSWR from 'swr';
 
 const messages = defineMessages('components.RequestList', {
@@ -33,6 +36,10 @@ const messages = defineMessages('components.RequestList', {
   sortDirection: 'Toggle Sort Direction',
   unableToConnect:
     'Unable to connect to {services}. Some information may be unavailable.',
+  resync: 'Resync',
+  resyncRunning: 'Syncing…',
+  resyncSuccess: 'Resync complete: {synced} OK, {failed} orphaned',
+  resyncFailed: 'Resync failed. Check logs for details.',
 });
 
 enum Filter {
@@ -56,10 +63,12 @@ type MediaType = 'all' | 'movie' | 'tv';
 const RequestList = () => {
   const router = useRouter();
   const intl = useIntl();
+  const { addToast } = useToasts();
   const { user } = useUser({
     id: Number(router.query.userId),
   });
   const { user: currentUser, hasPermission } = useUser();
+  const [isResyncing, setIsResyncing] = useState(false);
   const [currentFilter, setCurrentFilter] = useState<Filter>(Filter.PENDING);
   const [currentSort, setCurrentSort] = useState<Sort>('added');
   const [currentMediaType, setCurrentMediaType] = useState<string>('all');
@@ -289,6 +298,55 @@ const RequestList = () => {
               </Button>
             </Tooltip>
           </div>
+          {hasPermission(Permission.MANAGE_REQUESTS) && (
+            <Tooltip content={intl.formatMessage(messages.resync)}>
+              <Button
+                buttonType="default"
+                className="mb-2 ml-0 sm:mb-0 sm:ml-2"
+                buttonSize="md"
+                disabled={isResyncing}
+                onClick={async () => {
+                  setIsResyncing(true);
+                  try {
+                    const { data: result } = await axios.post<{
+                      synced: number;
+                      failed: number;
+                    }>('/api/v1/request/resync');
+                    addToast(
+                      intl.formatMessage(messages.resyncSuccess, {
+                        synced: result.synced,
+                        failed: result.failed,
+                      }),
+                      {
+                        autoDismiss: true,
+                        appearance: result.failed > 0 ? 'warning' : 'success',
+                      }
+                    );
+                    revalidate();
+                  } catch {
+                    addToast(intl.formatMessage(messages.resyncFailed), {
+                      autoDismiss: true,
+                      appearance: 'error',
+                    });
+                  } finally {
+                    setIsResyncing(false);
+                  }
+                }}
+              >
+                <ArrowPathIcon
+                  className={`h-5 w-5 ${isResyncing ? 'animate-spin' : ''}`}
+                  style={
+                    isResyncing ? { animationDirection: 'reverse' } : undefined
+                  }
+                />
+                <span>
+                  {intl.formatMessage(
+                    isResyncing ? messages.resyncRunning : messages.resync
+                  )}
+                </span>
+              </Button>
+            </Tooltip>
+          )}
         </div>
       </div>
 
