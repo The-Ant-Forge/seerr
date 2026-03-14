@@ -2,9 +2,12 @@ import Badge from '@app/components/Common/Badge';
 import Button from '@app/components/Common/Button';
 import CachedImage from '@app/components/Common/CachedImage';
 import ConfirmButton from '@app/components/Common/ConfirmButton';
+import MediaRatings from '@app/components/Common/MediaRatings';
 import RequestModal from '@app/components/RequestModal';
 import StatusBadge from '@app/components/StatusBadge';
 import useDeepLinks from '@app/hooks/useDeepLinks';
+import { useInView } from '@app/hooks/useInView';
+import useLocale from '@app/hooks/useLocale';
 import { Permission, useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
@@ -16,6 +19,7 @@ import {
   TrashIcon,
   XMarkIcon,
 } from '@heroicons/react/24/solid';
+import { type RatingResponse } from '@server/api/ratings';
 import { MediaRequestStatus, MediaStatus } from '@server/constants/media';
 import type { MediaRequest } from '@server/entity/MediaRequest';
 import type { NonFunctionProperties } from '@server/interfaces/api/common';
@@ -25,7 +29,6 @@ import type { TvDetails } from '@server/models/Tv';
 import axios from 'axios';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useInView } from '@app/hooks/useInView';
 import { FormattedRelativeTime, useIntl } from 'react-intl';
 import { useToasts } from 'react-toast-notifications';
 import useSWR, { mutate } from 'swr';
@@ -299,6 +302,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
   });
   const { addToast } = useToasts();
   const intl = useIntl();
+  const { locale } = useLocale();
   const { user, hasPermission } = useUser();
   const [showEditModal, setShowEditModal] = useState(false);
   const url =
@@ -307,6 +311,11 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
       : `/api/v1/tv/${request.media.tmdbId}`;
   const { data: title, error } = useSWR<MovieDetails | TvDetails>(
     inView ? url : null
+  );
+  const { data: ratingData } = useSWR<RatingResponse>(
+    inView && request.type === 'movie'
+      ? `/api/v1/movie/${request.media.tmdbId}/ratingscombined`
+      : null
   );
   const { data: requestData, mutate: revalidate } = useSWR<
     NonFunctionProperties<MediaRequest>
@@ -464,6 +473,13 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
               >
                 {isMovie(title) ? title.title : title.name}
               </Link>
+              <MediaRatings
+                ratingData={ratingData}
+                voteAverage={title.voteAverage}
+                voteCount={title.voteCount}
+                tmdbUrl={`https://www.themoviedb.org/${requestData.type === 'movie' ? 'movie' : 'tv'}/${title.id}?language=${locale}`}
+                compact
+              />
               {!isMovie(title) && request.seasons.length > 0 && (
                 <div className="card-field">
                   <span className="card-field-name">
