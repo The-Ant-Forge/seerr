@@ -7,6 +7,7 @@ import Header from '@app/components/Common/Header';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
 import PageTitle from '@app/components/Common/PageTitle';
 import useDebouncedState from '@app/hooks/useDebouncedState';
+import { useInView } from '@app/hooks/useInView';
 import { useUpdateQueryParams } from '@app/hooks/useUpdateQueryParams';
 import { Permission, useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
@@ -30,7 +31,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import type { ChangeEvent } from 'react';
 import { useState } from 'react';
-import { useInView } from '@app/hooks/useInView';
 import { FormattedRelativeTime, useIntl } from 'react-intl';
 import { useToasts } from 'react-toast-notifications';
 import useSWR from 'swr';
@@ -178,7 +178,10 @@ const Blocklist = () => {
       ) : (
         data.results.map((item: BlocklistItem) => {
           return (
-            <div className="py-2" key={`request-list-${item.tmdbId}`}>
+            <div
+              className="py-2"
+              key={`request-list-${item.mediaType}-${item.tmdbId}`}
+            >
               <BlocklistedItem item={item} revalidateList={revalidate} />
             </div>
           );
@@ -297,7 +300,9 @@ const BlocklistedItem = ({ item, revalidateList }: BlocklistedItemProps) => {
     setIsUpdating(true);
 
     try {
-      await axios.delete(`/api/v1/blocklist/${tmdbId}`);
+      await axios.delete(
+        `/api/v1/blocklist/${tmdbId}?mediaType=${item.mediaType}`
+      );
 
       addToast(
         <span>

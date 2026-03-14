@@ -84,7 +84,10 @@ class WatchlistSync {
 
     const mediaItems = await Media.getRelatedMedia(
       user,
-      allItems.map((i) => i.tmdbId)
+      allItems.map((i) => ({
+        tmdbId: i.tmdbId,
+        mediaType: i.type === 'show' ? MediaType.TV : MediaType.MOVIE,
+      }))
     );
 
     const watchlistTmdbIds = allItems.map((i) => i.tmdbId);
@@ -104,19 +107,23 @@ class WatchlistSync {
         .map((r) => `${r.media.mediaType}:${r.media.tmdbId}`)
     );
 
-    const unavailableItems = allItems.filter(
-      (i) =>
-        !autoRequestedTmdbIds.has(
-          `${i.type === 'show' ? MediaType.TV : MediaType.MOVIE}:${i.tmdbId}`
-        ) &&
+    const unavailableItems = allItems.filter((i) => {
+      const itemMediaType = i.type === 'show' ? MediaType.TV : MediaType.MOVIE;
+
+      return (
+        !autoRequestedTmdbIds.has(`${itemMediaType}:${i.tmdbId}`) &&
         !mediaItems.find(
           (m) =>
             m.tmdbId === i.tmdbId &&
+            m.mediaType === itemMediaType &&
             (m.status === MediaStatus.BLOCKLISTED ||
-              (m.status !== MediaStatus.UNKNOWN && m.mediaType === 'movie') ||
-              (m.mediaType === 'tv' && m.status === MediaStatus.AVAILABLE))
+              (itemMediaType === MediaType.MOVIE &&
+                m.status !== MediaStatus.UNKNOWN) ||
+              (itemMediaType === MediaType.TV &&
+                m.status === MediaStatus.AVAILABLE))
         )
-    );
+      );
+    });
 
     for (const mediaItem of unavailableItems) {
       try {
