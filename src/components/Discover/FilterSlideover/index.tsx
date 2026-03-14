@@ -28,6 +28,12 @@ const messages = defineMessages('components.Discover.FilterSlideover', {
     '{count, plural, one {# Active Filter} other {# Active Filters}}',
   releaseDate: 'Release Date',
   firstAirDate: 'First Air Date',
+  datePreset: 'Quick Range',
+  datePresetCustom: 'Custom',
+  datePresetUpcoming: 'Upcoming (6 months)',
+  datePresetCurrent: 'Current (past year)',
+  datePresetRecent: 'Last 3 years',
+  datePresetOlder: 'Older (3–12 years)',
   from: 'From',
   to: 'To',
   studio: 'Studio',
@@ -46,6 +52,19 @@ const messages = defineMessages('components.Discover.FilterSlideover', {
   status: 'Status',
   certification: 'Content Rating',
 });
+
+function monthsFromNow(months: number): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().split('T')[0];
+}
+
+const datePresets: Record<string, { gte: string; lte: string }> = {
+  upcoming: { gte: monthsFromNow(-1), lte: monthsFromNow(6) },
+  current: { gte: monthsFromNow(-12), lte: monthsFromNow(1) },
+  recent: { gte: monthsFromNow(-36), lte: monthsFromNow(1) },
+  older: { gte: monthsFromNow(-144), lte: monthsFromNow(-35) },
+};
 
 type FilterSlideoverProps = {
   show: boolean;
@@ -85,6 +104,41 @@ const FilterSlideover = ({
             {intl.formatMessage(
               type === 'movie' ? messages.releaseDate : messages.firstAirDate
             )}
+          </div>
+          <div className="mb-2">
+            <select
+              className="rounded-only"
+              value={
+                Object.entries(datePresets).find(
+                  ([, p]) =>
+                    currentFilters[dateGte] === p.gte &&
+                    currentFilters[dateLte] === p.lte
+                )?.[0] ?? 'custom'
+              }
+              onChange={(e) => {
+                const preset = datePresets[e.target.value];
+                batchUpdateQueryParams({
+                  [dateGte]: preset?.gte,
+                  [dateLte]: preset?.lte,
+                });
+              }}
+            >
+              <option value="custom">
+                {intl.formatMessage(messages.datePresetCustom)}
+              </option>
+              <option value="upcoming">
+                {intl.formatMessage(messages.datePresetUpcoming)}
+              </option>
+              <option value="current">
+                {intl.formatMessage(messages.datePresetCurrent)}
+              </option>
+              <option value="recent">
+                {intl.formatMessage(messages.datePresetRecent)}
+              </option>
+              <option value="older">
+                {intl.formatMessage(messages.datePresetOlder)}
+              </option>
+            </select>
           </div>
           <div className="relative z-40 flex space-x-2">
             <div className="flex flex-col">
