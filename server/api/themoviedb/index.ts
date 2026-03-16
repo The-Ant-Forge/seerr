@@ -286,11 +286,49 @@ class TheMovieDb extends ExternalAPI implements TvShowProvider {
             language,
             append_to_response:
               'credits,external_ids,videos,keywords,release_dates,watch/providers',
-            include_video_language: language + ', en',
+            include_video_language: language,
           },
         },
         43200
       );
+
+      if (
+        (!language || !language.startsWith('en')) &&
+        !data.videos?.results?.some((video) => video.type === 'Trailer')
+      ) {
+        try {
+          const fallback = await this.get<TmdbMovieDetails>(
+            `/movie/${movieId}`,
+            {
+              params: {
+                language,
+                append_to_response: 'videos',
+                include_video_language: 'en',
+              },
+            },
+            43200
+          );
+
+          const localizedVideos = data.videos?.results ?? [];
+          const localizedVideoKeys = new Set(
+            localizedVideos.map((video) => video.key)
+          );
+          const englishFallbackTrailers =
+            fallback.videos?.results?.filter(
+              (video) =>
+                video.type === 'Trailer' && !localizedVideoKeys.has(video.key)
+            ) ?? [];
+
+          if (englishFallbackTrailers.length > 0) {
+            data.videos = {
+              ...(data.videos ?? { results: [] }),
+              results: [...localizedVideos, ...englishFallbackTrailers],
+            };
+          }
+        } catch {
+          // Ignore trailer fallback failures; return the original data.
+        }
+      }
 
       return data;
     } catch (e) {
@@ -313,11 +351,49 @@ class TheMovieDb extends ExternalAPI implements TvShowProvider {
             language,
             append_to_response:
               'aggregate_credits,credits,external_ids,keywords,videos,content_ratings,watch/providers',
-            include_video_language: language + ', en',
+            include_video_language: language,
           },
         },
         43200
       );
+
+      if (
+        (!language || !language.startsWith('en')) &&
+        !data.videos?.results?.some((video) => video.type === 'Trailer')
+      ) {
+        try {
+          const fallback = await this.get<TmdbTvDetails>(
+            `/tv/${tvId}`,
+            {
+              params: {
+                language,
+                append_to_response: 'videos',
+                include_video_language: 'en',
+              },
+            },
+            43200
+          );
+
+          const localizedVideos = data.videos?.results ?? [];
+          const localizedVideoKeys = new Set(
+            localizedVideos.map((video) => video.key)
+          );
+          const englishFallbackTrailers =
+            fallback.videos?.results?.filter(
+              (video) =>
+                video.type === 'Trailer' && !localizedVideoKeys.has(video.key)
+            ) ?? [];
+
+          if (englishFallbackTrailers.length > 0) {
+            data.videos = {
+              ...(data.videos ?? { results: [] }),
+              results: [...localizedVideos, ...englishFallbackTrailers],
+            };
+          }
+        } catch {
+          // Ignore trailer fallback failures; return the original data.
+        }
+      }
 
       return data;
     } catch (e) {
