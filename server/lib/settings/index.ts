@@ -386,6 +386,7 @@ const SETTINGS_PATH = process.env.CONFIG_DIRECTORY
 
 class Settings {
   private data: AllSettings;
+  private saveLock: Promise<void> = Promise.resolve();
 
   constructor(initialSettings?: AllSettings) {
     this.data = {
@@ -657,7 +658,10 @@ class Settings {
   }
 
   set metadataSettings(data: MetadataSettings) {
-    this.data.metadataSettings = data;
+    this.data.metadataSettings = mergeSettings(
+      this.data.metadataSettings,
+      data
+    );
   }
 
   get radarr(): RadarrSettings[] {
@@ -681,7 +685,7 @@ class Settings {
   }
 
   set public(data: PublicSettings) {
-    this.data.public = data;
+    this.data.public = mergeSettings(this.data.public, data);
   }
 
   get fullPublicSettings(): FullPublicSettings {
@@ -837,7 +841,7 @@ class Settings {
       const parsedJson = JSON.parse(data);
       const migratedData = await runMigrations(parsedJson, SETTINGS_PATH);
       this.data = mergeSettings(this.data, migratedData);
-    } else {
+    } else if (data) {
       this.data = JSON.parse(data);
     }
 
@@ -869,9 +873,17 @@ class Settings {
   }
 
   public async save(): Promise<void> {
-    const tmp = SETTINGS_PATH + '.tmp';
-    await fs.writeFile(tmp, JSON.stringify(this.data, undefined, ' '));
-    await fs.rename(tmp, SETTINGS_PATH);
+    const savePromise = this.saveLock.then(async () => {
+      const tmp = SETTINGS_PATH + '.tmp';
+      await fs.writeFile(tmp, JSON.stringify(this.data, undefined, ' '));
+      await fs.rename(tmp, SETTINGS_PATH);
+    });
+
+    this.saveLock = savePromise.catch(() => {
+      // Keep the chain alive so future saves aren't blocked by past failures
+    });
+
+    return savePromise;
   }
 }
 
