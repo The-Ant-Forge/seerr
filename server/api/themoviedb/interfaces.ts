@@ -379,6 +379,7 @@ export interface TmdbPersonCredit {
 
 export interface TmdbPersonCreditCast extends TmdbPersonCredit {
   character: string;
+  order?: number;
 }
 
 export interface TmdbPersonCreditCrew extends TmdbPersonCredit {

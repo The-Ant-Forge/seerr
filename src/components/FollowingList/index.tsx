@@ -45,6 +45,7 @@ interface ActorSubscription {
   profilePath: string | null;
   mediaFilter: string;
   creditType: string;
+  roleFilter: string;
   minImdbRating: number;
   action: string;
   createdAt: string;

@@ -12,6 +12,15 @@ import {
 
 export type MediaFilter = 'all' | 'movie' | 'tv';
 export type CreditType = 'cast' | 'crew' | 'both';
+export type RoleFilter =
+  | 'any'
+  | 'lead'
+  | 'supporting'
+  | 'director'
+  | 'producer'
+  | 'writer'
+  | 'composer'
+  | 'cinematographer';
 export type SubscriptionAction = 'request' | 'notify';
 
 @Entity()
@@ -35,6 +44,9 @@ export class ActorSubscription {
 
   @Column({ type: 'varchar', default: 'cast' })
   public creditType: CreditType;
+
+  @Column({ type: 'varchar', default: 'any' })
+  public roleFilter: RoleFilter;
 
   @Column({ type: 'float', default: 0 })
   public minImdbRating: number;

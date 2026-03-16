@@ -19,6 +19,15 @@ const messages = defineMessages(
     creditTypeCast: 'Acting',
     creditTypeCrew: 'Crew',
     creditTypeBoth: 'Acting & Crew',
+    roleFilterLabel: 'Role',
+    roleFilterAny: 'Any',
+    roleFilterLead: 'Lead (Top 5 Billed)',
+    roleFilterSupporting: 'Supporting',
+    roleFilterDirector: 'Director',
+    roleFilterProducer: 'Producer',
+    roleFilterWriter: 'Writer',
+    roleFilterComposer: 'Composer',
+    roleFilterCinematographer: 'Cinematographer',
     minImdbRatingLabel: 'Minimum IMDb Rating',
     minImdbRatingHint:
       'Only auto-request titles rated at or above this on IMDb (0–10). 0 = no filter.',
@@ -47,6 +56,7 @@ interface ActorSubscription {
   profilePath: string | null;
   mediaFilter: string;
   creditType: string;
+  roleFilter: string;
   minImdbRating: number;
   action: string;
   createdAt: string;
@@ -75,6 +85,7 @@ const ActorSubscribeModal = ({
     existing?.mediaFilter ?? 'all'
   );
   const [creditType, setCreditType] = useState(existing?.creditType ?? 'cast');
+  const [roleFilter, setRoleFilter] = useState(existing?.roleFilter ?? 'any');
   const [minImdbRating, setMinImdbRating] = useState(
     existing?.minImdbRating ?? 0
   );
@@ -89,6 +100,7 @@ const ActorSubscribeModal = ({
         await axios.put(`/api/v1/actorSubscription/${existing.id}`, {
           mediaFilter,
           creditType,
+          roleFilter,
           minImdbRating,
           action,
           backfill,
@@ -102,6 +114,7 @@ const ActorSubscribeModal = ({
           personId,
           mediaFilter,
           creditType,
+          roleFilter,
           minImdbRating,
           action,
           backfill,
@@ -205,7 +218,10 @@ const ActorSubscribeModal = ({
             <select
               className=""
               value={creditType}
-              onChange={(e) => setCreditType(e.target.value)}
+              onChange={(e) => {
+                setCreditType(e.target.value);
+                setRoleFilter('any');
+              }}
             >
               <option value="cast">
                 {intl.formatMessage(messages.creditTypeCast)}
@@ -216,6 +232,50 @@ const ActorSubscribeModal = ({
               <option value="both">
                 {intl.formatMessage(messages.creditTypeBoth)}
               </option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-label">
+              {intl.formatMessage(messages.roleFilterLabel)}
+            </label>
+            <select
+              className=""
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+            >
+              <option value="any">
+                {intl.formatMessage(messages.roleFilterAny)}
+              </option>
+              {(creditType === 'cast' || creditType === 'both') && (
+                <>
+                  <option value="lead">
+                    {intl.formatMessage(messages.roleFilterLead)}
+                  </option>
+                  <option value="supporting">
+                    {intl.formatMessage(messages.roleFilterSupporting)}
+                  </option>
+                </>
+              )}
+              {(creditType === 'crew' || creditType === 'both') && (
+                <>
+                  <option value="director">
+                    {intl.formatMessage(messages.roleFilterDirector)}
+                  </option>
+                  <option value="producer">
+                    {intl.formatMessage(messages.roleFilterProducer)}
+                  </option>
+                  <option value="writer">
+                    {intl.formatMessage(messages.roleFilterWriter)}
+                  </option>
+                  <option value="composer">
+                    {intl.formatMessage(messages.roleFilterComposer)}
+                  </option>
+                  <option value="cinematographer">
+                    {intl.formatMessage(messages.roleFilterCinematographer)}
+                  </option>
+                </>
+              )}
             </select>
           </div>
 

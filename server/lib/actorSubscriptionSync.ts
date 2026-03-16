@@ -6,7 +6,10 @@ import type {
 } from '@server/api/themoviedb/interfaces';
 import { MediaType } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
-import { ActorSubscription } from '@server/entity/ActorSubscription';
+import {
+  ActorSubscription,
+  type RoleFilter,
+} from '@server/entity/ActorSubscription';
 import {
   BlocklistedMediaError,
   DuplicateMediaRequestError,
@@ -107,6 +110,13 @@ class ActorSubscriptionSync {
       return true;
     });
 
+    // Apply role filter
+    if (sub.roleFilter !== 'any') {
+      relevantCredits = relevantCredits.filter((c) =>
+        this.matchesRoleFilter(c, sub.roleFilter)
+      );
+    }
+
     // Find new credits
     const newCredits = relevantCredits.filter(
       (c) => !knownIds.has(c.credit_id)
@@ -193,6 +203,38 @@ class ActorSubscriptionSync {
     sub.setKnownCreditIds(allCurrentIds);
     sub.lastSyncedAt = new Date();
     await repo.save(sub);
+  }
+
+  private matchesRoleFilter(
+    credit: CombinedCredit,
+    roleFilter: RoleFilter
+  ): boolean {
+    // Cast role filters
+    if (roleFilter === 'lead') {
+      return 'order' in credit && (credit.order ?? 999) <= 4; // top 5 billed (0-indexed)
+    }
+    if (roleFilter === 'supporting') {
+      return 'order' in credit && (credit.order ?? 999) > 4;
+    }
+
+    // Crew role filters — match on department/job
+    if ('department' in credit) {
+      switch (roleFilter) {
+        case 'director':
+          return credit.job === 'Director';
+        case 'producer':
+          return credit.department === 'Production';
+        case 'writer':
+          return credit.department === 'Writing';
+        case 'composer':
+          return credit.job === 'Original Music Composer';
+        case 'cinematographer':
+          return credit.job === 'Director of Photography';
+      }
+    }
+
+    // Cast credit but crew-only filter selected (or vice versa) — no match
+    return false;
   }
 
   private async checkImdbRating(

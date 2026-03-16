@@ -35,6 +35,7 @@ actorSubscriptionRoutes.get('/', async (req, res, next) => {
         profilePath: sub.profilePath,
         mediaFilter: sub.mediaFilter,
         creditType: sub.creditType,
+        roleFilter: sub.roleFilter,
         minImdbRating: sub.minImdbRating,
         action: sub.action,
         createdAt: sub.createdAt,
@@ -89,6 +90,7 @@ actorSubscriptionRoutes.post('/', async (req, res, next) => {
       personId,
       mediaFilter,
       creditType,
+      roleFilter,
       minImdbRating,
       action,
       backfill,
@@ -96,6 +98,7 @@ actorSubscriptionRoutes.post('/', async (req, res, next) => {
       personId: number;
       mediaFilter?: string;
       creditType?: string;
+      roleFilter?: string;
       minImdbRating?: number;
       action?: string;
       backfill?: boolean;
@@ -140,6 +143,7 @@ actorSubscriptionRoutes.post('/', async (req, res, next) => {
       profilePath: person.profile_path ?? null,
       mediaFilter: (mediaFilter as 'all' | 'movie' | 'tv') ?? 'all',
       creditType: (creditType as 'cast' | 'crew' | 'both') ?? 'cast',
+      roleFilter: (roleFilter as ActorSubscription['roleFilter']) ?? 'any',
       minImdbRating: minImdbRating ?? 0,
       action: (action as 'request' | 'notify') ?? 'request',
       subscribedBy: req.user,
@@ -194,17 +198,26 @@ actorSubscriptionRoutes.put('/:id', async (req, res, next) => {
       return next({ status: 403, message: 'Not authorized' });
     }
 
-    const { mediaFilter, creditType, minImdbRating, action, backfill } =
-      req.body as {
-        mediaFilter?: string;
-        creditType?: string;
-        minImdbRating?: number;
-        action?: string;
-        backfill?: boolean;
-      };
+    const {
+      mediaFilter,
+      creditType,
+      roleFilter,
+      minImdbRating,
+      action,
+      backfill,
+    } = req.body as {
+      mediaFilter?: string;
+      creditType?: string;
+      roleFilter?: string;
+      minImdbRating?: number;
+      action?: string;
+      backfill?: boolean;
+    };
 
     if (mediaFilter) sub.mediaFilter = mediaFilter as 'all' | 'movie' | 'tv';
     if (creditType) sub.creditType = creditType as 'cast' | 'crew' | 'both';
+    if (roleFilter)
+      sub.roleFilter = roleFilter as ActorSubscription['roleFilter'];
     if (minImdbRating !== undefined) sub.minImdbRating = minImdbRating;
     if (action) sub.action = action as 'request' | 'notify';
     if (backfill) sub.setKnownCreditIds([]);
