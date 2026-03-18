@@ -1,6 +1,7 @@
 import { MediaServerType } from '@server/constants/server';
 import { Permission } from '@server/lib/permissions';
 import { runMigrations } from '@server/lib/settings/migrator';
+import logger from '@server/logger';
 import { randomUUID } from 'crypto';
 import fs from 'fs/promises';
 import { merge } from 'lodash';
@@ -787,18 +788,49 @@ class Settings {
       return this;
     }
 
-    let data;
+    let data: string | undefined;
     try {
       data = await fs.readFile(SETTINGS_PATH, 'utf-8');
     } catch {
-      await this.save();
+      // settings.json doesn't exist yet
     }
 
-    if (data && !raw) {
+    // Validate JSON — fall back to backup if corrupt
+    if (data) {
+      try {
+        JSON.parse(data);
+      } catch {
+        logger.warn(
+          'settings.json is corrupt — attempting recovery from settings.old.json',
+          { label: 'Settings' }
+        );
+        data = undefined;
+        const backupPath = SETTINGS_PATH.replace('.json', '.old.json');
+        try {
+          const backup = await fs.readFile(backupPath, 'utf-8');
+          JSON.parse(backup); // validate backup too
+          data = backup;
+          // Restore the backup as the primary file
+          await fs.writeFile(SETTINGS_PATH, backup);
+          logger.info('Recovered settings from settings.old.json', {
+            label: 'Settings',
+          });
+        } catch {
+          logger.error(
+            'settings.old.json is also missing or corrupt — starting with defaults',
+            { label: 'Settings' }
+          );
+        }
+      }
+    }
+
+    if (!data) {
+      await this.save();
+    } else if (!raw) {
       const parsedJson = JSON.parse(data);
       const migratedData = await runMigrations(parsedJson, SETTINGS_PATH);
       this.data = merge(this.data, migratedData);
-    } else if (data) {
+    } else {
       this.data = JSON.parse(data);
     }
 
