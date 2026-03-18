@@ -5,44 +5,77 @@
 <a href="https://github.com/seerr-team/seerr/blob/develop/LICENSE"><img alt="GitHub" src="https://img.shields.io/github/license/seerr-team/seerr"></a>
 </p>
 
-> **Fork of [seerr-team/seerr](https://github.com/seerr-team/seerr)** — modernised dependencies, Express 5, ESLint flat config, and Windows deployment tooling.
+> **Fork of [seerr-team/seerr](https://github.com/seerr-team/seerr)** — modernised dependencies, new features, quality-of-life improvements, and Windows deployment tooling.
 
 **Seerr** is a free and open source software application for managing requests for your media library. It integrates with the media server of your choice: [Jellyfin](https://jellyfin.org), [Plex](https://plex.tv), and [Emby](https://emby.media/). In addition, it integrates with your existing services, such as **[Sonarr](https://sonarr.tv/)**, **[Radarr](https://radarr.video/)**.
 
 ## What's changed in this fork
 
-This fork focuses on dependency modernisation and deployment improvements. All changes are committed separately for clean regression attribution.
+### New features
+
+- **Actor subscriptions** &mdash; follow actors/crew and auto-request new credits as they appear on TMDB
+  - Configurable credit type: cast, crew, or both
+  - Role filtering: lead (top 5 billed), supporting, director, producer, writer, composer, cinematographer
+  - IMDb rating threshold to skip low-quality content
+  - Backfill option to request existing filmography on subscribe
+  - Smart filtering: "Self" credits (interviews, behind-the-scenes, awards) are automatically excluded
+  - Three-state rating check: content with no rating that is recent/upcoming is deferred and retried, while old unrated content is permanently skipped
+- **Bulk remove** &mdash; remove all visible filtered requests from Radarr/Sonarr and Seerr in one operation
+- **Resync button** &mdash; manual reconciliation on the requests page that detects orphaned requests (approved in Seerr but missing from Radarr/Sonarr), recovers failed requests found in the service, and flags stuck pending requests
+- **Rating icons on requests** &mdash; RT critics/audience, IMDb, and TMDB scores shown inline on request list items
+- **Date range presets** &mdash; quick-select dropdown in the discover filter (Upcoming, Current, Last 3 Years, Older)
+- **Delete-files toggle** &mdash; per-server setting in Radarr/Sonarr configuration to control whether files are deleted from disk when removing media (default: off)
+- **Clear logs button** &mdash; admin-only button on the settings/logs page
+- **Backup & restore** &mdash; settings tab, setup wizard integration, and system tray support
+
+### Bug fixes
+
+- **Plex user import** &mdash; fixed XML parsing for `/api/users` endpoint (Plex returns XML regardless of Accept header)
+- **Local login** &mdash; now matches on username or email, not just email
+- **Watchlist sync pagination** &mdash; fetches all items instead of only the first 20
+- **Available filter** &mdash; requests page filter now includes approved requests where the media is already available in the library
+- **Settings crash recovery** &mdash; atomic writes (write-to-tmp then rename), fallback to `settings.old.json` on corruption, serialized writes to prevent partial overwrites
+- **Settings merge safety** &mdash; `mergeSettings` replaces arrays wholesale instead of merging by index, preventing stale entries
+- **Resync serviceId 0** &mdash; fixed falsy check (`!0` is true in JS) that caused all requests targeting server ID 0 to be marked as orphaned
+- **Filter label** &mdash; renamed "Processing" to "Requested" for consistency
+- **TMDB ID disambiguation** &mdash; media lookups now include media type to prevent cross-type collisions (upstream cherry-pick)
+- **Request completion** &mdash; requests are automatically marked as completed when media is already available (upstream cherry-pick)
+- **Region selector** &mdash; prevents empty region reporting during sync (upstream cherry-pick)
+- **Trailer language** &mdash; respects display language setting (upstream cherry-pick)
+- **Jellyfin scanner** &mdash; TMDB provider fallback when primary provider ID is missing (upstream cherry-pick)
+- **Discover errors** &mdash; graceful error handling when content is already available (upstream cherry-pick)
+- **Trailing whitespace** &mdash; warning on login username field (upstream cherry-pick)
+- **N+1 queries** &mdash; fixed in Plex/Jellyfin user imports
+- **Duplicate requests** &mdash; AsyncLock on request submission to prevent race conditions
+- Various other fixes: `plexUsername` sort, missing `await`, wrong HTTP status codes, log level defaults, Windows symlink handling
+
+### Code quality & hardening
+
+- **Testing**: Cypress &rarr; Playwright for E2E tests; Vitest unit tests grown to 220 across 14 files
+- **Type safety**: removed file-wide `any` disables from Jellyfin API client; typed Selector components
+- **Performance**: parallelised availability sync; aggregated sequential count queries; unique composite index on media
+- **Robustness**: 30s default timeout on all external API calls; pagination caps on all list endpoints
+- **Cleanup**: removed dead dependencies; extracted shared helpers; removed dead code and unused types
 
 ### Dependency updates ([full spec](docs/Spec-Dependency-Update.md))
 
-- **15 packages removed** by replacing with native browser/Node.js APIs (clipboard, intersection observer, date-fns, gravatar, semver, and more)
+- **15 packages removed** by replacing with native browser/Node.js APIs
 - **Express 4 &rarr; 5** with path-to-regexp v8 wildcard syntax fixes
-- **ESLint 8 &rarr; 9** with flat config migration (`eslint.config.js`)
+- **ESLint 8 &rarr; 9** with flat config migration
 - **yup 0.32 &rarr; 1.7** with 34 `.when()` API transformations across 16 files
 - **TypeScript 5.4 &rarr; 5.9** + @typescript-eslint v8
 - **Headless UI 1 &rarr; 2**, husky 8 &rarr; 9, lint-staged 13 &rarr; 16, commitlint 17 &rarr; 20
-- Multiple medium-effort upgrades: cronstrue, express-rate-limit, swagger-ui-express, connect-typeorm, @floating-ui/react (replacing react-popper-tooltip), yaml (replacing yamljs)
-- 2 real bugs found and fixed by new ESLint rules (`Number() ?? 1` &rarr; `|| 1`, `Infinity` import shadowing)
-
-### Code quality & hardening ([review spec](docs/spec-code-review-260310.md))
-
-- **Testing**: Cypress &rarr; Playwright for E2E tests; Vitest unit tests grown to 220 across 14 files (permissions, notifications, settings, routes, utilities)
-- **Type safety**: removed file-wide `any` disables from Jellyfin API client; typed Selector components; replaced `ace-builds` + `react-ace` with native `<textarea>`
-- **Performance**: parallelised availability sync (5 concurrent via `Promise.allSettled`); fixed N+1 queries in Plex/Jellyfin user imports; aggregated 8 sequential count queries into one
-- **Robustness**: 30s default timeout on all external API calls; pagination caps on all list endpoints; AsyncLock on request submission to prevent duplicates; unique composite index on media
-- **Bug fixes**: `plexUsername` sort returning wrong column; missing `await` on request save; wrong HTTP 401 &rarr; 403 for permission denial; `process.env.port` lowercase typo
-- **Cleanup**: removed 5 dead dependencies (`ace-builds`, `react-ace`, `react-spring`, `@types/csurf`, `cypress`); extracted shared helpers to reduce duplication across notification agents and detail components
+- Multiple medium-effort upgrades: cronstrue, express-rate-limit, swagger-ui-express, connect-typeorm, @floating-ui/react, yaml
 
 ### Deployment tooling
 
-- **`deploy.sh`** &mdash; one-step build and deploy to a local folder
+- **`deploy.sh`** &mdash; one-step build and deploy to a local folder (`--clean` flag for full wipe)
 - **System tray manager** (PowerShell + VBS) &mdash; start/stop/open-browser from the Windows system tray, like Radarr/Sonarr
+- **Cloudflare Tunnel** compatible &mdash; configurable port via `$PORT` env var, no inbound ports required
 
-### What's NOT changed
+### Upstream strategy
 
-- No feature changes or UI modifications
-- All existing functionality preserved
-- Upstream changes can be merged via `git fetch upstream develop && git merge upstream/develop`
+This fork cherry-picks individual commits from upstream rather than merging, since the histories have diverged significantly. See [CLAUDE.md](CLAUDE.md) for the full branch strategy and cherry-pick workflow.
 
 ## Current Features
 
