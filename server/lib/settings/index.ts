@@ -4,9 +4,16 @@ import { runMigrations } from '@server/lib/settings/migrator';
 import logger from '@server/logger';
 import { randomUUID } from 'crypto';
 import fs from 'fs/promises';
-import { merge } from 'lodash';
+import { mergeWith } from 'lodash';
 import path from 'path';
 import webpush from 'web-push';
+
+// Deep merge that replaces arrays wholesale instead of merging by index,
+// preventing stale array entries when incoming data has fewer elements
+const mergeSettings = <T>(current: T, incoming: Partial<T>): T =>
+  mergeWith({}, current, incoming, (_objValue: unknown, srcValue: unknown) =>
+    Array.isArray(srcValue) ? srcValue : undefined
+  ) as T;
 
 export interface Library {
   id: string;
@@ -609,7 +616,7 @@ class Settings {
       migrations: [],
     };
     if (initialSettings) {
-      this.data = merge(this.data, initialSettings);
+      this.data = mergeSettings(this.data, initialSettings);
     }
   }
 
@@ -618,7 +625,7 @@ class Settings {
   }
 
   set main(data: MainSettings) {
-    this.data.main = data;
+    this.data.main = mergeSettings(this.data.main, data);
   }
 
   get plex(): PlexSettings {
@@ -626,7 +633,7 @@ class Settings {
   }
 
   set plex(data: PlexSettings) {
-    this.data.plex = data;
+    this.data.plex = mergeSettings(this.data.plex, data);
   }
 
   get jellyfin(): JellyfinSettings {
@@ -634,7 +641,7 @@ class Settings {
   }
 
   set jellyfin(data: JellyfinSettings) {
-    this.data.jellyfin = data;
+    this.data.jellyfin = mergeSettings(this.data.jellyfin, data);
   }
 
   get tautulli(): TautulliSettings {
@@ -642,7 +649,7 @@ class Settings {
   }
 
   set tautulli(data: TautulliSettings) {
-    this.data.tautulli = data;
+    this.data.tautulli = mergeSettings(this.data.tautulli, data);
   }
 
   get metadataSettings(): MetadataSettings {
@@ -717,7 +724,7 @@ class Settings {
   }
 
   set notifications(data: NotificationSettings) {
-    this.data.notifications = data;
+    this.data.notifications = mergeSettings(this.data.notifications, data);
   }
 
   get jobs(): Record<JobId, JobSettings> {
@@ -725,7 +732,7 @@ class Settings {
   }
 
   set jobs(data: Record<JobId, JobSettings>) {
-    this.data.jobs = data;
+    this.data.jobs = mergeSettings(this.data.jobs, data);
   }
 
   get network(): NetworkSettings {
@@ -733,7 +740,7 @@ class Settings {
   }
 
   set network(data: NetworkSettings) {
-    this.data.network = data;
+    this.data.network = mergeSettings(this.data.network, data);
   }
 
   get migrations(): string[] {
@@ -829,7 +836,7 @@ class Settings {
     } else if (!raw) {
       const parsedJson = JSON.parse(data);
       const migratedData = await runMigrations(parsedJson, SETTINGS_PATH);
-      this.data = merge(this.data, migratedData);
+      this.data = mergeSettings(this.data, migratedData);
     } else {
       this.data = JSON.parse(data);
     }
