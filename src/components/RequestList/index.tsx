@@ -40,7 +40,8 @@ const messages = defineMessages('components.RequestList', {
     'Unable to connect to {services}. Some information may be unavailable.',
   resync: 'Resync',
   resyncRunning: 'Syncing…',
-  resyncSuccess: 'Resync complete: {synced} OK, {failed} orphaned',
+  resyncSuccess:
+    'Resync complete: {synced} OK, {failed} orphaned, {recovered} recovered',
   resyncFailed: 'Resync failed. Check logs for details.',
   removeAll: 'Remove All ({count})',
   removeAllConfirm: 'Confirm Remove All?',
@@ -320,15 +321,22 @@ const RequestList = () => {
                       const { data: result } = await axios.post<{
                         synced: number;
                         failed: number;
+                        recovered: number;
                       }>('/api/v1/request/resync');
                       addToast(
                         intl.formatMessage(messages.resyncSuccess, {
                           synced: result.synced,
                           failed: result.failed,
+                          recovered: result.recovered,
                         }),
                         {
                           autoDismiss: true,
-                          appearance: result.failed > 0 ? 'warning' : 'success',
+                          appearance:
+                            result.failed > 0
+                              ? 'warning'
+                              : result.recovered > 0
+                                ? 'info'
+                                : 'success',
                         }
                       );
                       revalidate();

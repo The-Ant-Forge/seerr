@@ -270,16 +270,24 @@ mediaRoutes.delete(
 
       const deleteFiles = serviceSettings.deleteFiles ?? false;
 
-      if (isMovie) {
-        await (service as RadarrAPI).removeMovie(media.tmdbId, deleteFiles);
-      } else {
-        const tmdb = new TheMovieDb();
-        const series = await tmdb.getTvShow({ tvId: media.tmdbId });
-        const tvdbId = series.external_ids.tvdb_id ?? media.tvdbId;
-        if (!tvdbId) {
-          throw new Error('TVDB ID not found');
+      // Try to remove from Radarr/Sonarr, but don't fail if it's already gone
+      try {
+        if (isMovie) {
+          await (service as RadarrAPI).removeMovie(media.tmdbId, deleteFiles);
+        } else {
+          const tmdb = new TheMovieDb();
+          const series = await tmdb.getTvShow({ tvId: media.tmdbId });
+          const tvdbId = series.external_ids.tvdb_id ?? media.tvdbId;
+          if (!tvdbId) {
+            throw new Error('TVDB ID not found');
+          }
+          await (service as SonarrAPI).removeSeries(tvdbId, deleteFiles);
         }
-        await (service as SonarrAPI).removeSeries(tvdbId, deleteFiles);
+      } catch (e) {
+        logger.warn(
+          `Could not remove from ${isMovie ? 'Radarr' : 'Sonarr'} (may already be gone): ${e.message}`,
+          { label: 'Media', mediaId: media.id }
+        );
       }
 
       return res.status(204).send();
@@ -325,7 +333,7 @@ mediaRoutes.post(
           // Try to remove from Radarr/Sonarr for both standard and 4K
           for (const is4k of [false, true]) {
             const serviceId = is4k ? media.serviceId4k : media.serviceId;
-            if (!serviceId) continue;
+            if (serviceId == null) continue;
 
             let serviceSettings;
             if (isMovie) {

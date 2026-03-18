@@ -698,16 +698,24 @@ requestRoutes.post(
       const requestRepository = getRepository(MediaRequest);
       const mediaRepository = getRepository(Media);
 
-      // Find all approved requests with their media
-      const approvedRequests = await requestRepository.find({
-        where: { status: MediaRequestStatus.APPROVED },
+      // Find approved, pending, AND failed requests with their media
+      const requests = await requestRepository.find({
+        where: [
+          { status: MediaRequestStatus.APPROVED },
+          { status: MediaRequestStatus.PENDING },
+          { status: MediaRequestStatus.FAILED },
+        ],
         relations: { media: true, requestedBy: true, modifiedBy: true },
       });
 
       let synced = 0;
       let failed = 0;
+      let recovered = 0;
 
-      for (const request of approvedRequests) {
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+      for (const request of requests) {
         const media = request.media;
         if (!media) continue;
 
@@ -717,9 +725,110 @@ requestRoutes.post(
           ? media.externalServiceId4k
           : media.externalServiceId;
 
-        // No service tracking → nothing to check
-        if (!serviceId || !externalId) {
-          synced++;
+        // FAILED requests — check if they've been re-added to Radarr/Sonarr
+        if (request.status === MediaRequestStatus.FAILED) {
+          if (serviceId != null && externalId != null) {
+            let foundInService = false;
+            try {
+              if (media.mediaType === MediaType.MOVIE) {
+                const server = settings.radarr.find((r) => r.id === serviceId);
+                if (server) {
+                  const radarrApi = new RadarrAPI({
+                    apiKey: server.apiKey,
+                    url: RadarrAPI.buildUrl(server, '/api/v3'),
+                  });
+                  await radarrApi.getMovie({ id: externalId });
+                  foundInService = true;
+                }
+              } else {
+                const server = settings.sonarr.find((s) => s.id === serviceId);
+                if (server) {
+                  const sonarrApi = new SonarrAPI({
+                    apiKey: server.apiKey,
+                    url: SonarrAPI.buildUrl(server, '/api/v3'),
+                  });
+                  await sonarrApi.getSeriesById(externalId);
+                  foundInService = true;
+                }
+              }
+            } catch {
+              // Still not in service
+            }
+
+            if (foundInService) {
+              request.status = MediaRequestStatus.APPROVED;
+              await requestRepository.save(request);
+
+              // Restore media status if it was reset
+              const statusField = is4k ? 'status4k' : 'status';
+              if (media[statusField] === MediaStatus.UNKNOWN) {
+                media[statusField] = MediaStatus.PROCESSING;
+                await mediaRepository.save(media);
+              }
+
+              recovered++;
+              logger.info(
+                `Resync: recovered request #${request.id} — ${media.mediaType} (TMDB ${media.tmdbId}) found in ${media.mediaType === MediaType.MOVIE ? 'Radarr' : 'Sonarr'}`,
+                { label: 'Request Resync' }
+              );
+            }
+          }
+          continue;
+        }
+
+        // PENDING requests with no service tracking that are older than 1 day
+        // are stuck — they were never sent to Radarr/Sonarr
+        if (request.status === MediaRequestStatus.PENDING) {
+          if (
+            serviceId == null &&
+            externalId == null &&
+            request.createdAt < oneDayAgo
+          ) {
+            request.status = MediaRequestStatus.FAILED;
+            await requestRepository.save(request);
+
+            // Reset media status if no other active requests remain
+            const otherActive = await requestRepository.count({
+              where: [
+                {
+                  media: { id: media.id },
+                  status: MediaRequestStatus.APPROVED,
+                },
+                {
+                  media: { id: media.id },
+                  status: MediaRequestStatus.PENDING,
+                },
+              ],
+            });
+            if (otherActive === 0) {
+              const statusField = is4k ? 'status4k' : 'status';
+              if (media[statusField] === MediaStatus.PENDING) {
+                media[statusField] = MediaStatus.UNKNOWN;
+                await mediaRepository.save(media);
+              }
+            }
+
+            failed++;
+            logger.warn(
+              `Resync: marked request #${request.id} as failed — stuck in PENDING with no service tracking (${media.mediaType} TMDB ${media.tmdbId})`,
+              { label: 'Request Resync' }
+            );
+          } else {
+            synced++;
+          }
+          continue;
+        }
+
+        // APPROVED requests — check if still present in Radarr/Sonarr
+        // No service tracking → orphaned (approved but never reached service)
+        if (serviceId == null || externalId == null) {
+          request.status = MediaRequestStatus.FAILED;
+          await requestRepository.save(request);
+          failed++;
+          logger.warn(
+            `Resync: marked request #${request.id} as failed — APPROVED but no service tracking (${media.mediaType} TMDB ${media.tmdbId})`,
+            { label: 'Request Resync' }
+          );
           continue;
         }
 
@@ -784,11 +893,12 @@ requestRoutes.post(
         }
       }
 
-      logger.info(`Resync complete: ${synced} OK, ${failed} orphaned`, {
-        label: 'Request Resync',
-      });
+      logger.info(
+        `Resync complete: ${synced} OK, ${failed} orphaned, ${recovered} recovered`,
+        { label: 'Request Resync' }
+      );
 
-      return res.status(200).json({ synced, failed });
+      return res.status(200).json({ synced, failed, recovered });
     } catch (e) {
       logger.error('Error during request resync', {
         label: 'Request Resync',
