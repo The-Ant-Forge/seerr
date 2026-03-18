@@ -609,7 +609,9 @@ authRoutes.post('/local', async (req, res, next) => {
     const user = await userRepository
       .createQueryBuilder('user')
       .select(['user.id', 'user.email', 'user.password', 'user.plexId'])
-      .where('user.email = :email', { email: body.email.toLowerCase() })
+      .where('LOWER(user.email) = :login OR LOWER(user.username) = :login', {
+        login: body.email.toLowerCase(),
+      })
       .getOne();
 
     if (!user || !(await user.passwordMatch(body.password))) {

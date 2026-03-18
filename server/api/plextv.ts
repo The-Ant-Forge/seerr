@@ -3,6 +3,7 @@ import cacheManager from '@server/lib/cache';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { randomUUID } from 'node:crypto';
+import xml2js from 'xml2js';
 import ExternalAPI from './externalapi';
 
 interface PlexAccountResponse {
@@ -248,8 +249,51 @@ class PlexTvAPI extends ExternalAPI {
   }
 
   public async getUsers(): Promise<UsersResponse> {
-    const response = await this.axios.get<UsersResponse>('/api/users');
-    return response.data;
+    // Plex /api/users always returns XML regardless of Accept header
+    const response = await this.axios.get('/api/users', {
+      headers: { Accept: 'application/xml' },
+      transformResponse: (data: string) => data, // prevent axios JSON parse
+    });
+
+    const parsed = await xml2js.parseStringPromise(response.data, {
+      explicitArray: false,
+    });
+
+    const container = parsed.MediaContainer;
+    const rawUsers = container.User
+      ? Array.isArray(container.User)
+        ? container.User
+        : [container.User]
+      : [];
+
+    return {
+      MediaContainer: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        User: rawUsers.map(
+          (u: any): PlexTvUser => ({
+            id: u.$.id,
+            title: u.$.title,
+            username: u.$.username || u.$.title,
+            email: u.$.email,
+            thumb: u.$.thumb,
+            Server: u.Server
+              ? (Array.isArray(u.Server) ? u.Server : [u.Server]).map(
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  (s: any) => ({
+                    id: s.$.id,
+                    serverId: s.$.serverId,
+                    machineIdentifier: s.$.machineIdentifier,
+                    name: s.$.name,
+                    lastSeenAt: s.$.lastSeenAt,
+                    numLibraries: s.$.numLibraries,
+                    owned: s.$.owned,
+                  })
+                )
+              : undefined,
+          })
+        ),
+      },
+    };
   }
 
   public async getWatchlist({
