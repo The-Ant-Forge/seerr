@@ -28,27 +28,6 @@
 - **Clear logs button** &mdash; admin-only button on the settings/logs page
 - **Backup & restore** &mdash; settings tab, setup wizard integration, and system tray support
 
-### Bug fixes
-
-- **Plex user import** &mdash; fixed XML parsing for `/api/users` endpoint (Plex returns XML regardless of Accept header)
-- **Local login** &mdash; now matches on username or email, not just email
-- **Watchlist sync pagination** &mdash; fetches all items instead of only the first 20
-- **Available filter** &mdash; requests page filter now includes approved requests where the media is already available in the library
-- **Settings crash recovery** &mdash; atomic writes (write-to-tmp then rename), fallback to `settings.old.json` on corruption, serialized writes to prevent partial overwrites
-- **Settings merge safety** &mdash; `mergeSettings` replaces arrays wholesale instead of merging by index, preventing stale entries
-- **Resync serviceId 0** &mdash; fixed falsy check (`!0` is true in JS) that caused all requests targeting server ID 0 to be marked as orphaned
-- **Filter label** &mdash; renamed "Processing" to "Requested" for consistency
-- **TMDB ID disambiguation** &mdash; media lookups now include media type to prevent cross-type collisions (upstream cherry-pick)
-- **Request completion** &mdash; requests are automatically marked as completed when media is already available (upstream cherry-pick)
-- **Region selector** &mdash; prevents empty region reporting during sync (upstream cherry-pick)
-- **Trailer language** &mdash; respects display language setting (upstream cherry-pick)
-- **Jellyfin scanner** &mdash; TMDB provider fallback when primary provider ID is missing (upstream cherry-pick)
-- **Discover errors** &mdash; graceful error handling when content is already available (upstream cherry-pick)
-- **Trailing whitespace** &mdash; warning on login username field (upstream cherry-pick)
-- **N+1 queries** &mdash; fixed in Plex/Jellyfin user imports
-- **Duplicate requests** &mdash; AsyncLock on request submission to prevent race conditions
-- Various other fixes: `plexUsername` sort, missing `await`, wrong HTTP status codes, log level defaults, Windows symlink handling
-
 ### Code quality & hardening
 
 - **Testing**: Cypress &rarr; Playwright for E2E tests; Vitest unit tests grown to 220 across 14 files
