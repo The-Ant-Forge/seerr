@@ -4744,6 +4744,14 @@ paths:
           example: '1'
           schema:
             type: string
+        - in: query
+          name: mediaType
+          required: true
+          schema:
+            type: string
+            enum:
+              - movie
+              - tv
       responses:
         '200':
           description: Blocklist details in JSON
@@ -4759,6 +4767,14 @@ paths:
           example: '1'
           schema:
             type: string
+        - in: query
+          name: mediaType
+          required: true
+          schema:
+            type: string
+            enum:
+              - movie
+              - tv
       responses:
         '204':
           description: Succesfully removed media item
@@ -4861,6 +4877,14 @@ paths:
           example: '1'
           schema:
             type: string
+        - in: query
+          name: mediaType
+          required: true
+          schema:
+            type: string
+            enum:
+              - movie
+              - tv
       responses:
         '200':
           description: Blocklist details in JSON
@@ -4879,6 +4903,14 @@ paths:
           example: '1'
           schema:
             type: string
+        - in: query
+          name: mediaType
+          required: true
+          schema:
+            type: string
+            enum:
+              - movie
+              - tv
       responses:
         '204':
           description: Succesfully removed media item
@@ -4914,6 +4946,14 @@ paths:
           example: '1'
           schema:
             type: string
+        - in: query
+          name: mediaType
+          required: true
+          schema:
+            type: string
+            enum:
+              - movie
+              - tv
       responses:
         '204':
           description: Succesfully removed watchlist item
