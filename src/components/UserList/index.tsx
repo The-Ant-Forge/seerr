@@ -750,16 +750,19 @@ const UserList = () => {
             >
               {intl.formatMessage(messages.created)}
             </SortableColumnHeader>
-            <Table.TH className="text-right">
+            <Table.TH className="w-1/12 whitespace-nowrap text-right">
               {(data.results ?? []).length > 1 && (
-                <Button
-                  buttonType="warning"
-                  onClick={() => setShowBulkEditModal(true)}
-                  disabled={selectedUsers.length === 0}
-                >
-                  <PencilIcon />
-                  <span>{intl.formatMessage(messages.bulkedit)}</span>
-                </Button>
+                <div className="flex justify-end">
+                  <Button
+                    buttonType="warning"
+                    className="w-full sm:min-w-[12rem]"
+                    onClick={() => setShowBulkEditModal(true)}
+                    disabled={selectedUsers.length === 0}
+                  >
+                    <PencilIcon />
+                    <span>{intl.formatMessage(messages.bulkedit)}</span>
+                  </Button>
+                </div>
               )}
             </Table.TH>
           </tr>
@@ -871,11 +874,13 @@ const UserList = () => {
                   day: 'numeric',
                 })}
               </Table.TD>
-              <Table.TD alignText="right">
+              <Table.TD
+                alignText="right"
+                className="grid grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-2"
+              >
                 <Button
                   buttonType="warning"
                   disabled={user.id === 1 && currentUser?.id !== 1}
-                  className="mr-2"
                   onClick={() =>
                     router.push(
                       '/users/[userId]/settings',
