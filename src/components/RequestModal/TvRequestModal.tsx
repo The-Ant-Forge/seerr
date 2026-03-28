@@ -266,8 +266,6 @@ const TvRequestModal = ({
       .filter(
         (season) =>
           (season[is4k ? 'status4k' : 'status'] === MediaStatus.AVAILABLE ||
-            season[is4k ? 'status4k' : 'status'] ===
-              MediaStatus.PARTIALLY_AVAILABLE ||
             season[is4k ? 'status4k' : 'status'] === MediaStatus.PROCESSING) &&
           !requestedSeasons.includes(season.seasonNumber)
       )
@@ -627,7 +625,9 @@ const TvRequestModal = ({
                                 }
                               }}
                               className={`relative inline-flex h-5 w-10 flex-shrink-0 cursor-pointer items-center justify-center pt-2 focus:outline-none ${
-                                mediaSeason ||
+                                (mediaSeason &&
+                                  mediaSeason[is4k ? 'status4k' : 'status'] !==
+                                    MediaStatus.PARTIALLY_AVAILABLE) ||
                                 (quota?.tv.limit &&
                                   currentlyRemaining <= 0 &&
                                   !isSelectedSeason(season.seasonNumber)) ||
@@ -640,7 +640,10 @@ const TvRequestModal = ({
                               <span
                                 aria-hidden="true"
                                 className={`${
-                                  !!mediaSeason ||
+                                  (!!mediaSeason &&
+                                    mediaSeason[
+                                      is4k ? 'status4k' : 'status'
+                                    ] !== MediaStatus.PARTIALLY_AVAILABLE) ||
                                   (!!seasonRequest &&
                                     !editingSeasons.includes(
                                       season.seasonNumber
@@ -653,7 +656,10 @@ const TvRequestModal = ({
                               <span
                                 aria-hidden="true"
                                 className={`${
-                                  !!mediaSeason ||
+                                  (!!mediaSeason &&
+                                    mediaSeason[
+                                      is4k ? 'status4k' : 'status'
+                                    ] !== MediaStatus.PARTIALLY_AVAILABLE) ||
                                   (!!seasonRequest &&
                                     !editingSeasons.includes(
                                       season.seasonNumber
