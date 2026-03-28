@@ -12,7 +12,7 @@ Add-Type -AssemblyName System.Drawing
 
 # Resolve port: param > $env:PORT > 5055 (matches server/index.ts logic)
 if ($Port -eq 0) {
-    $Port = if ($env:PORT) { [int]$env:PORT } else { 5055 }
+    $Port = if ($env:PORT) { [int]$env:PORT } else { 3819 }
 }
 
 $script:seerrProcess = $null
