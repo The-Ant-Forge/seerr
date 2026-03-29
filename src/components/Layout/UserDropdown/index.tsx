@@ -36,13 +36,15 @@ ForwardedLink.displayName = 'ForwardedLink';
 
 const UserDropdown = () => {
   const intl = useIntl();
-  const { user, revalidate, hasPermission } = useUser();
+  const { user, hasPermission } = useUser();
 
   const logout = async () => {
     const response = await axios.post('/api/v1/auth/logout');
 
     if (response.data?.status === 'ok') {
-      revalidate();
+      // Hard navigation clears all client-side state (SWR cache, React)
+      // and triggers SSR redirect to /login for unauthenticated users
+      window.location.href = '/login';
     }
   };
 
