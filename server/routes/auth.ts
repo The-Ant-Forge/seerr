@@ -70,14 +70,33 @@ authRoutes.post('/plex', async (req, res, next) => {
     const plextv = new PlexTvAPI(body.authToken);
     const account = await plextv.getUser();
 
+    // Validate required fields before using them
+    if (!account.id) {
+      logger.error('Plex ID was missing from Plex.tv response', {
+        label: 'API',
+        ip: req.ip,
+        email: account.email,
+        plexUsername: account.username,
+      });
+
+      return next({
+        status: 500,
+        message: 'Something went wrong. Try again.',
+      });
+    }
+
     // Next let's see if the user already exists
-    let user = await userRepository
+    const queryBuilder = userRepository
       .createQueryBuilder('user')
-      .where('user.plexId = :id', { id: account.id })
-      .orWhere('user.email = :email', {
+      .where('user.plexId = :id', { id: account.id });
+
+    if (account.email) {
+      queryBuilder.orWhere('user.email = :email', {
         email: account.email.toLowerCase(),
-      })
-      .getOne();
+      });
+    }
+
+    let user = await queryBuilder.getOne();
 
     if (!user && !(await userRepository.count())) {
       user = new User({
@@ -101,20 +120,6 @@ authRoutes.post('/plex', async (req, res, next) => {
         where: { id: 1 },
       });
       const mainPlexTv = new PlexTvAPI(mainUser.plexToken ?? '');
-
-      if (!account.id) {
-        logger.error('Plex ID was missing from Plex.tv response', {
-          label: 'API',
-          ip: req.ip,
-          email: account.email,
-          plexUsername: account.username,
-        });
-
-        return next({
-          status: 500,
-          message: 'Something went wrong. Try again.',
-        });
-      }
 
       if (
         account.id === mainUser.plexId ||
