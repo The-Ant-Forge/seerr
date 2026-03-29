@@ -1,3 +1,4 @@
+import PlexTvAPI from '@server/api/plextv';
 import RadarrAPI from '@server/api/servarr/radarr';
 import SonarrAPI from '@server/api/servarr/sonarr';
 import TautulliAPI from '@server/api/tautulli';
@@ -290,6 +291,45 @@ mediaRoutes.delete(
         );
       }
 
+      // Try to remove from Plex watchlists so the sync doesn't re-create it
+      try {
+        const userRepository = getRepository(User);
+        const users = await userRepository
+          .createQueryBuilder('user')
+          .addSelect('user.plexToken')
+          .where("user.plexToken != ''")
+          .getMany();
+
+        for (const user of users) {
+          if (!user.plexToken) continue;
+          try {
+            const plexTvApi = new PlexTvAPI(user.plexToken);
+            const watchlist = await plexTvApi.getWatchlist({ size: 200 });
+            const match = watchlist.items.find(
+              (item) => item.tmdbId === media.tmdbId
+            );
+            if (match) {
+              await plexTvApi.removeFromWatchlist(match.ratingKey);
+              logger.info(
+                `Removed "${match.title}" from Plex watchlist for user ${user.displayName}`,
+                { label: 'Media' }
+              );
+            }
+          } catch (e) {
+            logger.debug(
+              `Could not check/remove Plex watchlist for user ${user.displayName}: ${(e as Error).message}`,
+              { label: 'Media' }
+            );
+          }
+        }
+      } catch (e) {
+        // Non-critical — don't fail the delete if watchlist cleanup fails
+        logger.debug('Could not clean up Plex watchlists', {
+          label: 'Media',
+          errorMessage: (e as Error).message,
+        });
+      }
+
       return res.status(204).send();
     } catch (e) {
       logger.error('Something went wrong fetching media in delete request', {
@@ -317,6 +357,34 @@ mediaRoutes.post(
       const settings = getSettings();
       const mediaRepository = getRepository(Media);
       const tmdb = new TheMovieDb();
+
+      // Pre-fetch Plex watchlists for all users to remove items after deletion
+      const userRepository = getRepository(User);
+      const plexUsers = await userRepository
+        .createQueryBuilder('user')
+        .addSelect('user.plexToken')
+        .where("user.plexToken != ''")
+        .getMany();
+
+      // Build tmdbId → { ratingKey, plexTvApi } map for quick lookup
+      const watchlistMap = new Map<
+        number,
+        { ratingKey: string; api: PlexTvAPI }[]
+      >();
+      for (const user of plexUsers) {
+        if (!user.plexToken) continue;
+        try {
+          const api = new PlexTvAPI(user.plexToken);
+          const watchlist = await api.getWatchlist({ size: 200 });
+          for (const item of watchlist.items) {
+            const entries = watchlistMap.get(item.tmdbId) ?? [];
+            entries.push({ ratingKey: item.ratingKey, api });
+            watchlistMap.set(item.tmdbId, entries);
+          }
+        } catch {
+          // Non-critical
+        }
+      }
 
       let removed = 0;
       let failed = 0;
@@ -370,6 +438,14 @@ mediaRoutes.post(
                 `Bulk remove: failed to remove media ${mediaId} from ${isMovie ? 'Radarr' : 'Sonarr'}: ${e.message}`,
                 { label: 'Bulk Remove' }
               );
+            }
+          }
+
+          // Remove from Plex watchlists so sync doesn't re-create it
+          const watchlistEntries = watchlistMap.get(media.tmdbId);
+          if (watchlistEntries) {
+            for (const entry of watchlistEntries) {
+              await entry.api.removeFromWatchlist(entry.ratingKey);
             }
           }
 

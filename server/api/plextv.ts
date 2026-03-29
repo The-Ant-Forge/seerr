@@ -410,6 +410,30 @@ class PlexTvAPI extends ExternalAPI {
     }
   }
 
+  public async removeFromWatchlist(ratingKey: string): Promise<boolean> {
+    try {
+      await this.axios.put('/actions/removeFromWatchlist', undefined, {
+        params: { ratingKey },
+        baseURL: 'https://discover.provider.plex.tv',
+      });
+
+      // Invalidate watchlist cache so the next sync sees the removal
+      const watchlistCache = cacheManager.getCache('plexwatchlist');
+      watchlistCache.data.del(this.authToken);
+
+      return true;
+    } catch (e) {
+      logger.warn(
+        `Failed to remove ratingKey ${ratingKey} from Plex watchlist`,
+        {
+          label: 'Plex.TV API',
+          errorMessage: (e as Error).message,
+        }
+      );
+      return false;
+    }
+  }
+
   public async pingToken() {
     try {
       const response = await this.axios.get('/api/v2/ping', {
