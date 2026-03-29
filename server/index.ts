@@ -216,7 +216,7 @@ app
           secure: 'auto',
         },
         store: new TypeormStore({
-          cleanupLimit: 2,
+          cleanupLimit: 0,
           ttl: 60 * 60 * 24 * 30,
         }).connect(sessionRespository) as Store,
       })
@@ -257,7 +257,10 @@ app
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _next: NextFunction
       ) => {
-        // format error
+        // Guard against double-response crashes
+        if (res.headersSent) {
+          return;
+        }
         res.status(err.status || 500).json({
           message: err.message,
           errors: err.errors,
