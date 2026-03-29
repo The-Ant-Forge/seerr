@@ -152,17 +152,19 @@ Base path: `/api/v1` — full spec at `/api-docs`
 
 ## Git & Upstream
 
+### Repository status
+This is a **standalone repository** (detached from the GitHub fork of seerr-team/seerr). The `upstream` git remote is retained for cherry-picking useful commits.
+
 ### Branch strategy
-This is a fork of [seerr-team/seerr](https://github.com/seerr-team/seerr) with significant local changes.
 
 | Branch | Purpose |
 |---|---|
 | `main` | Our primary branch — all Seerr work lands here, deploy from here |
 | `origin/develop` | Legacy — was the old default, now unused |
-| `upstream/develop` | Upstream source — fetch with `git fetch upstream` |
+| `upstream/develop` | Upstream reference — fetch with `git fetch upstream` |
 
 ### Incorporating upstream changes
-We cherry-pick individual commits rather than merging, because the histories have diverged too far.
+We cherry-pick individual commits rather than merging, because the histories have diverged too far. PRs are not sent upstream.
 
 ```bash
 git fetch upstream
@@ -176,8 +178,8 @@ When cherry-picking, watch for:
 - Migration conflicts (we have custom migrations that upstream doesn't)
 
 ### Remotes
-- `origin` → `The-Ant-Forge/seerr` (our fork)
-- `upstream` → `seerr-team/seerr` (upstream source)
+- `origin` → `The-Ant-Forge/seerr` (standalone)
+- `upstream` → `seerr-team/seerr` (reference for cherry-picks)
 
 ## Working Style
 
