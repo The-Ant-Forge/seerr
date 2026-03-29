@@ -123,9 +123,14 @@ class ExternalAPI {
         keyTtl - (ttl ?? DEFAULT_TTL) * 1000 <
         Date.now() - DEFAULT_ROLLING_BUFFER
       ) {
-        this.axios.get<T>(endpoint, config).then((response) => {
-          this.cache?.set(cacheKey, response.data, ttl ?? DEFAULT_TTL);
-        });
+        this.axios
+          .get<T>(endpoint, config)
+          .then((response) => {
+            this.cache?.set(cacheKey, response.data, ttl ?? DEFAULT_TTL);
+          })
+          .catch(() => {
+            // Silently ignore background cache refresh failures
+          });
       }
       return cachedItem;
     }

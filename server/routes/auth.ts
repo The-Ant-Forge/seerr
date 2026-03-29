@@ -214,7 +214,8 @@ authRoutes.post('/plex', async (req, res, next) => {
   } catch (e) {
     logger.error('Something went wrong authenticating with Plex account', {
       label: 'API',
-      errorMessage: e.message,
+      errorMessage: e instanceof Error ? e.message : String(e),
+      stack: e instanceof Error ? e.stack : undefined,
       ip: req.ip,
     });
     return next({

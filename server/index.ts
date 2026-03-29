@@ -19,6 +19,23 @@ import WebPushAgent from '@server/lib/notifications/agents/webpush';
 import checkOverseerrMerge from '@server/lib/overseerrMerge';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
+
+// Prevent unhandled promise rejections from silently killing the process
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled promise rejection', {
+    label: 'Process',
+    reason: reason instanceof Error ? reason.stack : String(reason),
+  });
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught exception', {
+    label: 'Process',
+    errorMessage: error.message,
+    stack: error.stack,
+  });
+});
+
 import clearCookies from '@server/middleware/clearcookies';
 import routes from '@server/routes';
 import avatarproxy from '@server/routes/avatarproxy';
