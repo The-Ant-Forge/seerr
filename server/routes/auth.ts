@@ -4,6 +4,7 @@ import { ApiErrorCode } from '@server/constants/error';
 import { MediaServerType, ServerType } from '@server/constants/server';
 import { UserType } from '@server/constants/user';
 import { getRepository } from '@server/datasource';
+import { Session } from '@server/entity/Session';
 import { User } from '@server/entity/User';
 import { startJobs } from '@server/job/schedule';
 import { Permission } from '@server/lib/permissions';
@@ -703,21 +704,22 @@ authRoutes.post('/logout', async (req, res, next) => {
       }
     }
 
-    req.session?.destroy((err: Error | null) => {
-      if (err) {
-        logger.error('Failed to destroy session', {
-          label: 'Auth',
-          error: err.message,
-          userId,
-        });
-        return next({ status: 500, message: 'Failed to destroy session.' });
-      }
-      logger.debug('Successfully logged out user', {
-        label: 'Auth',
-        userId,
-      });
-      res.status(200).json({ status: 'ok' });
+    // Manually delete session from DB since connect-typeorm's destroy()
+    // uses softDelete which requires a @DeleteDateColumn the entity lacks
+    const sessionId = req.sessionID;
+    if (sessionId) {
+      await getRepository(Session).delete({ id: sessionId });
+    }
+
+    // Clear the session cookie so the browser stops sending it
+    res.clearCookie('connect.sid');
+
+    logger.debug('Successfully logged out user', {
+      label: 'Auth',
+      userId,
     });
+
+    return res.status(200).json({ status: 'ok' });
   } catch (error) {
     logger.error('Error during logout process', {
       label: 'Auth',
