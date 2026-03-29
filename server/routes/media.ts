@@ -304,7 +304,7 @@ mediaRoutes.delete(
           if (!user.plexToken) continue;
           try {
             const plexTvApi = new PlexTvAPI(user.plexToken);
-            const watchlist = await plexTvApi.getWatchlist({ size: 200 });
+            const watchlist = await plexTvApi.getWatchlist({ size: 100 });
             const match = watchlist.items.find(
               (item) => item.tmdbId === media.tmdbId
             );
@@ -375,7 +375,7 @@ mediaRoutes.post(
         if (!user.plexToken) continue;
         try {
           const api = new PlexTvAPI(user.plexToken);
-          const watchlist = await api.getWatchlist({ size: 200 });
+          const watchlist = await api.getWatchlist({ size: 100 });
           for (const item of watchlist.items) {
             const entries = watchlistMap.get(item.tmdbId) ?? [];
             entries.push({ ratingKey: item.ratingKey, api });
