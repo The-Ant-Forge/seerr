@@ -15,19 +15,42 @@ import logger from '@server/logger';
 import { Permission } from './permissions';
 
 class WatchlistSync {
+  private running = false;
+
   public async syncWatchlist() {
-    const userRepository = getRepository(User);
+    if (this.running) {
+      logger.debug(
+        'Skipping watchlist sync — previous run is still in progress',
+        { label: 'Plex Watchlist Sync' }
+      );
+      return;
+    }
 
-    // Get users who actually have plex tokens
-    const users = await userRepository
-      .createQueryBuilder('user')
-      .addSelect('user.plexToken')
-      .leftJoinAndSelect('user.settings', 'settings')
-      .where("user.plexToken != ''")
-      .getMany();
+    this.running = true;
+    try {
+      const userRepository = getRepository(User);
 
-    for (const user of users) {
-      await this.syncUserWatchlist(user);
+      // Get users who actually have plex tokens
+      const users = await userRepository
+        .createQueryBuilder('user')
+        .addSelect('user.plexToken')
+        .leftJoinAndSelect('user.settings', 'settings')
+        .where("user.plexToken != ''")
+        .getMany();
+
+      for (const user of users) {
+        try {
+          await this.syncUserWatchlist(user);
+        } catch (e) {
+          logger.error('Failed to sync watchlist for user', {
+            label: 'Plex Watchlist Sync',
+            userId: user.id,
+            errorMessage: e instanceof Error ? e.message : String(e),
+          });
+        }
+      }
+    } finally {
+      this.running = false;
     }
   }
 
@@ -82,29 +105,55 @@ class WatchlistSync {
 
     if (allItems.length === 0) return;
 
-    const mediaItems = await Media.getRelatedMedia(
-      user,
-      allItems.map((i) => ({
-        tmdbId: i.tmdbId,
-        mediaType: i.type === 'show' ? MediaType.TV : MediaType.MOVIE,
-      }))
-    );
+    let mediaItems: Awaited<ReturnType<typeof Media.getRelatedMedia>>;
+    try {
+      mediaItems = await Media.getRelatedMedia(
+        user,
+        allItems.map((i) => ({
+          tmdbId: i.tmdbId,
+          mediaType: i.type === 'show' ? MediaType.TV : MediaType.MOVIE,
+        }))
+      );
+    } catch (e) {
+      logger.error(
+        'Failed to query related media, aborting user sync to prevent duplicates',
+        {
+          label: 'Plex Watchlist Sync',
+          userId: user.id,
+          errorMessage: e instanceof Error ? e.message : String(e),
+        }
+      );
+      return;
+    }
 
     const watchlistTmdbIds = allItems.map((i) => i.tmdbId);
 
     const requestRepository = getRepository(MediaRequest);
-    const existingAutoRequests: MediaRequest[] =
-      watchlistTmdbIds.length > 0
-        ? await requestRepository
-            .createQueryBuilder('request')
-            .leftJoinAndSelect('request.media', 'media')
-            .where('request.requestedBy = :userId', { userId: user.id })
-            .andWhere('request.isAutoRequest = true')
-            .andWhere('media.tmdbId IN (:...tmdbIds)', {
-              tmdbIds: watchlistTmdbIds,
-            })
-            .getMany()
-        : [];
+    let existingAutoRequests: MediaRequest[];
+    try {
+      existingAutoRequests =
+        watchlistTmdbIds.length > 0
+          ? await requestRepository
+              .createQueryBuilder('request')
+              .leftJoinAndSelect('request.media', 'media')
+              .where('request.requestedBy = :userId', { userId: user.id })
+              .andWhere('request.isAutoRequest = true')
+              .andWhere('media.tmdbId IN (:...tmdbIds)', {
+                tmdbIds: watchlistTmdbIds,
+              })
+              .getMany()
+          : [];
+    } catch (e) {
+      logger.error(
+        'Failed to query existing auto-requests, aborting user sync to prevent duplicates',
+        {
+          label: 'Plex Watchlist Sync',
+          userId: user.id,
+          errorMessage: e instanceof Error ? e.message : String(e),
+        }
+      );
+      return;
+    }
 
     const autoRequestedTmdbIds = new Set(
       existingAutoRequests
