@@ -203,6 +203,19 @@ app
 
     // Set up sessions
     const sessionRespository = getRepository(Session);
+    const sessionStore = new TypeormStore({
+      cleanupLimit: 0,
+      ttl: 60 * 60 * 24 * 30,
+      onError: (store, error) => {
+        // connect-typeorm's default onError permanently disconnects the store
+        // on ANY error (including transient SQLITE_BUSY). Override to just log
+        // and keep the store connected.
+        logger.warn('Session store error (non-fatal)', {
+          label: 'Session',
+          errorMessage: error instanceof Error ? error.message : String(error),
+        });
+      },
+    }).connect(sessionRespository) as Store;
     server.use(
       '/api',
       session({
@@ -215,10 +228,7 @@ app
           sameSite: settings.network.csrfProtection ? 'strict' : 'lax',
           secure: 'auto',
         },
-        store: new TypeormStore({
-          cleanupLimit: 0,
-          ttl: 60 * 60 * 24 * 30,
-        }).connect(sessionRespository) as Store,
+        store: sessionStore,
       })
     );
     const apiDocs = parseYaml(readFileSync(API_SPEC_PATH, 'utf8'));
