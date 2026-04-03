@@ -9,12 +9,3 @@
 - [ ] **Switch from `sqlite3` to `better-sqlite3`** — TypeORM supports `better-sqlite3` driver natively. Better maintained, synchronous API, may reduce SQLITE_BUSY contention from concurrent background jobs. Change `type: 'sqlite'` to `type: 'better-sqlite3'` in `server/datasource.ts`.
 
 - [ ] **Tailwind CSS 3→4** — Complete config rewrite (`tailwind.config.js` → CSS-based config), class name changes, PostCSS plugin changes. Every component potentially affected. Dedicated session.
-
-## Infrastructure
-
-- [ ] **Expose Seerr externally via Cloudflare Tunnel + Access**
-  - Install `cloudflared` on Windows host
-  - Create tunnel pointing to `localhost:5055`
-  - Add Cloudflare Access policy for authentication
-  - No ports need to be opened on the router
-  - Radarr and Sonarr stay internal only — Seerr talks to them on the LAN
