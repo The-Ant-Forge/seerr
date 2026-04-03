@@ -22,8 +22,15 @@ module.exports = {
 
     return config;
   },
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
+  },
   experimental: {
-    scrollRestoration: true,
     largePageDataBytes: 512 * 1000,
   },
 };

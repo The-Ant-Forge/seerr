@@ -74,10 +74,11 @@ const Tooltip = ({
 
   return (
     <>
+      {/* eslint-disable react-hooks/refs -- floating-ui uses callback refs, safe in render */}
       {React.cloneElement(children, {
         ref: refs.setReference,
         ...getReferenceProps(),
-      })}
+      } as React.HTMLAttributes<Element> & { ref: typeof refs.setReference })}
       {isOpen &&
         content &&
         ReactDOM.createPortal(
@@ -91,6 +92,7 @@ const Tooltip = ({
           </div>,
           document.body
         )}
+      {/* eslint-enable react-hooks/refs */}
     </>
   );
 };

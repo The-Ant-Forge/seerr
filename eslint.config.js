@@ -2,9 +2,7 @@ const { FlatCompat } = require('@eslint/eslintrc');
 const js = require('@eslint/js');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
 const tsParser = require('@typescript-eslint/parser');
-const jsxA11yPlugin = require('eslint-plugin-jsx-a11y');
 const reactPlugin = require('eslint-plugin-react');
-const reactHooksPlugin = require('eslint-plugin-react-hooks');
 const formatjsModule = require('eslint-plugin-formatjs');
 const formatjsPlugin = formatjsModule.default || formatjsModule;
 const globals = require('globals');
@@ -20,11 +18,8 @@ module.exports = [
   // TypeScript recommended (via compat since plugin uses legacy format)
   ...compat.extends('plugin:@typescript-eslint/recommended'),
 
-  // Next.js recommended (legacy config, needs compat)
-  ...compat.extends('plugin:@next/next/recommended'),
-
-  // jsx-a11y recommended
-  ...compat.extends('plugin:jsx-a11y/recommended'),
+  // Next.js recommended (flat config — includes jsx-a11y and react-hooks)
+  ...require('eslint-config-next'),
 
   // Prettier must be last to override formatting rules
   ...compat.extends('prettier'),
@@ -50,14 +45,12 @@ module.exports = [
     },
     plugins: {
       '@typescript-eslint': tsPlugin,
-      'jsx-a11y': jsxA11yPlugin,
-      'react-hooks': reactHooksPlugin,
       formatjs: formatjsPlugin,
     },
     settings: {
       react: {
         pragma: 'React',
-        version: '18',
+        version: '19',
       },
     },
     linterOptions: {

@@ -22,7 +22,9 @@ const CopyButton = ({
 }: CopyButtonProps) => {
   const { addToast } = useToasts();
   const [isCopied, setIsCopied] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  );
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(textToCopy).then(() => {
