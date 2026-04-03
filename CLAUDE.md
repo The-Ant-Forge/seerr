@@ -177,6 +177,18 @@ When cherry-picking, watch for:
 - Dependency version mismatches (we may be ahead or behind upstream)
 - Migration conflicts (we have custom migrations that upstream doesn't)
 
+### Versioning convention
+
+Tags follow the pattern `v{upstream}-antforge.{n}`:
+
+| Tag | Meaning |
+|---|---|
+| `v3.1.0-antforge.1` | Our 1st release, rooted in upstream v3.1.0 source |
+| `v3.1.0-antforge.2` | Our 2nd release, still rooted in v3.1.0 |
+| `v3.2.0-antforge.1` | After cherry-picking from upstream v3.2.0 |
+
+The upstream version part reflects which source base we are aligned with. The `antforge.N` counter reflects our own release cadence on top of it. When we cherry-pick from a new upstream release, bump the upstream part and reset the counter to 1.
+
 ### Remotes
 - `origin` → `The-Ant-Forge/seerr` (standalone)
 - `upstream` → `seerr-team/seerr` (reference for cherry-picks)

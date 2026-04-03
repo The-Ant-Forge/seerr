@@ -98,4 +98,4 @@ Follow actors and crew members from their person page and automatically request 
 - **SQLite driver changed** from `sqlite3` to `better-sqlite3` — existing databases are fully compatible (same file format, same migrations)
 - **React 19** — if you have custom components extending Seerr, `forwardRef` is no longer used; ref is passed as a regular prop
 
-**Full Changelog**: https://github.com/The-Ant-Forge/seerr/compare/v3.1.0...v4.0.0
+**Full Changelog**: https://github.com/The-Ant-Forge/seerr/compare/v3.1.0...v3.1.0-antforge.1
