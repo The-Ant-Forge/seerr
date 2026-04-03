@@ -3,6 +3,7 @@ import Button from '@app/components/Common/Button';
 import CachedImage from '@app/components/Common/CachedImage';
 import Tooltip from '@app/components/Common/Tooltip';
 import { issueOptions } from '@app/components/IssueModal/constants';
+import { useInView } from '@app/hooks/useInView';
 import { Permission, useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
@@ -13,7 +14,6 @@ import type Issue from '@server/entity/Issue';
 import type { MovieDetails } from '@server/models/Movie';
 import type { TvDetails } from '@server/models/Tv';
 import Link from 'next/link';
-import { useInView } from '@app/hooks/useInView';
 import { FormattedRelativeTime, useIntl } from 'react-intl';
 import useSWR from 'swr';
 
@@ -303,7 +303,7 @@ const IssueItem = ({ issue }: IssueItemProps) => {
       </div>
       <div className="z-10 mt-4 flex w-full flex-col justify-center pl-4 pr-4 xl:mt-0 xl:w-96 xl:items-end xl:pl-0">
         <span className="w-full">
-          <Link href={`/issues/${issue.id}`} passHref legacyBehavior>
+          <Link href={`/issues/${issue.id}`}>
             <Button as="a" className="w-full" buttonType="primary">
               <EyeIcon />
               <span>{intl.formatMessage(messages.viewissue)}</span>

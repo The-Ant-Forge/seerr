@@ -119,7 +119,7 @@ const CreateIssueModal = ({
                     strong: (msg: React.ReactNode) => <strong>{msg}</strong>,
                   })}
                 </div>
-                <Link href={`/issues/${newIssue.data.id}`} legacyBehavior>
+                <Link href={`/issues/${newIssue.data.id}`}>
                   <Button as="a" className="mt-4">
                     <span>{intl.formatMessage(messages.toastviewissue)}</span>
                     <ArrowRightCircleIcon />

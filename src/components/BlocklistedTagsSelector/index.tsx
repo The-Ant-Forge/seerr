@@ -12,8 +12,8 @@ import type {
 import type { Keyword } from '@server/models/common';
 import axios from 'axios';
 import { useFormikContext } from 'formik';
+import type React from 'react';
 import {
-  forwardRef,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -241,11 +241,12 @@ const BlocklistedTagsImportButton = ({
 
 type BlocklistedTagImportFormProps = BlocklistedTagsImportButtonProps;
 
-const BlocklistedTagImportForm = forwardRef<
-  Partial<HTMLFormElement>,
-  BlocklistedTagImportFormProps
->((props, ref) => {
-  const { setSelector } = props;
+const BlocklistedTagImportForm = ({
+  setSelector,
+  ref,
+}: BlocklistedTagImportFormProps & {
+  ref?: React.Ref<Partial<HTMLFormElement>>;
+}) => {
   const intl = useIntl();
   const [formValue, setFormValue] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
@@ -324,7 +325,7 @@ const BlocklistedTagImportForm = forwardRef<
       </div>
     </form>
   );
-});
+};
 
 const VerifyClearIndicator = <
   Option,

@@ -11,7 +11,8 @@ import { CogIcon, UserIcon } from '@heroicons/react/24/solid';
 import axios from 'axios';
 import type { LinkProps } from 'next/link';
 import Link from 'next/link';
-import { Fragment, forwardRef } from 'react';
+import type React from 'react';
+import { Fragment } from 'react';
 import { useIntl } from 'react-intl';
 
 const messages = defineMessages('components.Layout.UserDropdown', {
@@ -21,18 +22,21 @@ const messages = defineMessages('components.Layout.UserDropdown', {
   signout: 'Sign Out',
 });
 
-const ForwardedLink = forwardRef<
-  HTMLAnchorElement,
-  LinkProps & React.ComponentPropsWithoutRef<'a'>
->(({ href, children, ...rest }, ref) => {
+const ForwardedLink = ({
+  href,
+  children,
+  ref,
+  ...rest
+}: LinkProps &
+  React.ComponentPropsWithoutRef<'a'> & {
+    ref?: React.Ref<HTMLAnchorElement>;
+  }) => {
   return (
     <Link href={href} ref={ref} {...rest}>
       {children}
     </Link>
   );
-});
-
-ForwardedLink.displayName = 'ForwardedLink';
+};
 
 const UserDropdown = () => {
   const intl = useIntl();

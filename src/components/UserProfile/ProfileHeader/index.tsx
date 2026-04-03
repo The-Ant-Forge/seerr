@@ -91,8 +91,6 @@ const ProfileHeader = ({ user, isSettingsPage }: ProfileHeaderProps) => {
                 ? `/profile/settings`
                 : `/users/${user.id}/settings`
             }
-            passHref
-            legacyBehavior
           >
             <Button as="a">
               <CogIcon />
@@ -105,8 +103,6 @@ const ProfileHeader = ({ user, isSettingsPage }: ProfileHeaderProps) => {
               href={
                 loggedInUser?.id === user.id ? `/profile` : `/users/${user.id}`
               }
-              passHref
-              legacyBehavior
             >
               <Button as="a">
                 <UserIcon />

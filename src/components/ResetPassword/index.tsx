@@ -85,7 +85,7 @@ const ResetPassword = () => {
                   {intl.formatMessage(messages.resetpasswordsuccessmessage)}
                 </p>
                 <span className="mt-4 flex justify-center rounded-md shadow-sm">
-                  <Link href="/login" passHref legacyBehavior>
+                  <Link href="/login">
                     <Button as="a" buttonType="ghost">
                       {intl.formatMessage(messages.gobacklogin)}
                     </Button>

@@ -1,5 +1,5 @@
 import CachedImage from '@app/components/Common/CachedImage';
-import type { ForwardRefRenderFunction, HTMLAttributes } from 'react';
+import type { HTMLAttributes } from 'react';
 import React, { useEffect, useState } from 'react';
 
 interface ImageFaderProps extends HTMLAttributes<HTMLDivElement> {
@@ -11,16 +11,14 @@ interface ImageFaderProps extends HTMLAttributes<HTMLDivElement> {
 
 const DEFAULT_ROTATION_SPEED = 6000;
 
-const ImageFader: ForwardRefRenderFunction<HTMLDivElement, ImageFaderProps> = (
-  {
-    backgroundImages,
-    rotationSpeed = DEFAULT_ROTATION_SPEED,
-    isDarker,
-    forceOptimize,
-    ...props
-  },
-  ref
-) => {
+const ImageFader = ({
+  backgroundImages,
+  rotationSpeed = DEFAULT_ROTATION_SPEED,
+  isDarker,
+  forceOptimize,
+  ref,
+  ...props
+}: ImageFaderProps & { ref?: React.Ref<HTMLDivElement> }) => {
   const [activeIndex, setIndex] = useState(0);
 
   useEffect(() => {
@@ -79,4 +77,4 @@ const ImageFader: ForwardRefRenderFunction<HTMLDivElement, ImageFaderProps> = (
   );
 };
 
-export default React.forwardRef<HTMLDivElement, ImageFaderProps>(ImageFader);
+export default ImageFader;
