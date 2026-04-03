@@ -1,7 +1,7 @@
 import ExternalAPI from '@server/api/externalapi';
 import cacheManager from '@server/lib/cache';
 import { getSettings } from '@server/lib/settings';
-import jaro from 'wink-jaro-distance';
+import { jaroSimilarity } from '@server/utils/jaroWinkler';
 
 interface RTAlgoliaSearchResponse {
   results: {
@@ -61,7 +61,7 @@ const norm = (s: string): string =>
 
 // Title similarity. 1 if exact, quarter-jaro otherwise.
 const similarity = (a: string, b: string): number =>
-  a === b ? 1 : jaro(a, b).similarity * INEXACT_TITLE_FACTOR;
+  a === b ? 1 : jaroSimilarity(a, b) * INEXACT_TITLE_FACTOR;
 
 // Gets the best similarity score between the searched title and all alternate
 // titles of the search result. Non-main titles are penalized.
@@ -167,7 +167,8 @@ class RottenTomatoes extends ExternalAPI {
       };
     } catch (e) {
       throw new Error(
-        `[RT API] Failed to retrieve movie ratings: ${e.message}`
+        `[RT API] Failed to retrieve movie ratings: ${e.message}`,
+        { cause: e }
       );
     }
   }
@@ -205,7 +206,9 @@ class RottenTomatoes extends ExternalAPI {
         year: Number(tvshow.releaseYear),
       };
     } catch (e) {
-      throw new Error(`[RT API] Failed to retrieve tv ratings: ${e.message}`);
+      throw new Error(`[RT API] Failed to retrieve tv ratings: ${e.message}`, {
+        cause: e,
+      });
     }
   }
 }

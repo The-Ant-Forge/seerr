@@ -1,10 +1,10 @@
 import logger from '@server/logger';
+import rateLimit, { type RateLimitOptions } from '@server/utils/axiosRateLimit';
 import { requestInterceptorFunction } from '@server/utils/customProxyAgent';
+import { getExtension } from '@server/utils/mimeTypes';
 import axios, { type AxiosInstance } from 'axios';
-import rateLimit, { type rateLimitOptions } from 'axios-rate-limit';
 import { createHash } from 'crypto';
 import { promises } from 'fs';
-import mime from 'mime';
 import path, { join } from 'path';
 
 type ImageResponse = {
@@ -141,7 +141,7 @@ class ImageProxy {
     baseUrl: string,
     options: {
       cacheVersion?: number;
-      rateLimitOptions?: rateLimitOptions;
+      rateLimitOptions?: RateLimitOptions;
       headers?: Record<string, string>;
     } = {}
   ) {
@@ -274,7 +274,7 @@ class ImageProxy {
       const buffer = Buffer.from(response.data, 'binary');
 
       const contentType = response.headers['content-type'] || '';
-      const extension = mime.getExtension(contentType) || '';
+      const extension = getExtension(contentType) || '';
 
       let maxAge = Number(
         (response.headers['cache-control'] ?? '0').split('=')[1]

@@ -1,7 +1,7 @@
+import rateLimit from '@server/utils/axiosRateLimit';
 import { requestInterceptorFunction } from '@server/utils/customProxyAgent';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import axios from 'axios';
-import rateLimit from 'axios-rate-limit';
 import type NodeCache from 'node-cache';
 
 // 5 minute default TTL (in seconds)

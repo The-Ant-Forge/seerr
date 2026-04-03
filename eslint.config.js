@@ -7,7 +7,6 @@ const reactPlugin = require('eslint-plugin-react');
 const reactHooksPlugin = require('eslint-plugin-react-hooks');
 const formatjsModule = require('eslint-plugin-formatjs');
 const formatjsPlugin = formatjsModule.default || formatjsModule;
-const noRelativeImportPaths = require('eslint-plugin-no-relative-import-paths');
 const globals = require('globals');
 
 const compat = new FlatCompat({
@@ -54,7 +53,6 @@ module.exports = [
       'jsx-a11y': jsxA11yPlugin,
       'react-hooks': reactHooksPlugin,
       formatjs: formatjsPlugin,
-      'no-relative-import-paths': noRelativeImportPaths,
     },
     settings: {
       react: {
@@ -88,10 +86,6 @@ module.exports = [
         {
           prefer: 'type-imports',
         },
-      ],
-      'no-relative-import-paths/no-relative-import-paths': [
-        'error',
-        { allowSameFolder: true },
       ],
     },
   },
