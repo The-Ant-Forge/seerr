@@ -49,6 +49,7 @@
     "adm-zip": "^0.5.17",
     "axios": "1.14.0",
     "bcrypt": "6.0.0",
+    "better-sqlite3": "^12.8.0",
     "connect-typeorm": "2.0.0",
     "cookie-parser": "1.4.7",
     "country-flag-icons": "1.6.15",
@@ -81,7 +82,6 @@
     "reflect-metadata": "0.2.2",
     "rehype-sanitize": "^6.0.0",
     "sharp": "^0.34.5",
-    "sqlite3": "5.1.7",
     "swagger-ui-express": "5.0.1",
     "swr": "2.4.1",
     "tailwind-merge": "^3.5.0",
@@ -186,7 +186,7 @@
       "@swc/core",
       "bcrypt",
       "sharp",
-      "sqlite3"
+      "better-sqlite3"
     ],
     "overrides": {
       "sqlite3>node-gyp": "^12.2.0",
