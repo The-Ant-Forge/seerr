@@ -8,6 +8,7 @@ import { Field, Form, Formik } from 'formik';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
 import ReactMarkdown from 'react-markdown';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 
 const messages = defineMessages('components.IssueDetails.IssueDescription', {
   description: 'Description',
@@ -147,8 +148,15 @@ const IssueDescription = ({
       ) : (
         <div className="prose mt-4">
           <ReactMarkdown
-            allowedElements={['p', 'img', 'strong', 'em']}
-            skipHtml
+            rehypePlugins={[
+              [
+                rehypeSanitize,
+                {
+                  ...defaultSchema,
+                  tagNames: ['p', 'img', 'strong', 'em'],
+                },
+              ],
+            ]}
           >
             {description}
           </ReactMarkdown>

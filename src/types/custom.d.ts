@@ -23,6 +23,8 @@ declare module '*.png' {
   export default content;
 }
 
+declare module '@fontsource-variable/inter';
+
 declare module '*.css' {
   interface IClassNames {
     [className: string]: string;

@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { Fragment, useState } from 'react';
 import { FormattedRelativeTime, useIntl } from 'react-intl';
 import ReactMarkdown from 'react-markdown';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import * as Yup from 'yup';
 
 const messages = defineMessages('components.IssueDetails.IssueComment', {
@@ -224,8 +225,15 @@ const IssueComment = ({
             ) : (
               <div className="prose w-full max-w-full">
                 <ReactMarkdown
-                  skipHtml
-                  allowedElements={['p', 'em', 'strong', 'ul', 'ol', 'li']}
+                  rehypePlugins={[
+                    [
+                      rehypeSanitize,
+                      {
+                        ...defaultSchema,
+                        tagNames: ['p', 'em', 'strong', 'ul', 'ol', 'li'],
+                      },
+                    ],
+                  ]}
                 >
                   {comment.message}
                 </ReactMarkdown>

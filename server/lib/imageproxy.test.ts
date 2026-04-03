@@ -1,4 +1,4 @@
-import mime from 'mime/lite';
+import mime from 'mime';
 import { describe, expect, it } from 'vitest';
 
 /**
