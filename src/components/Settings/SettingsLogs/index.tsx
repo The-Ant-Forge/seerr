@@ -31,7 +31,7 @@ import axios from 'axios';
 import { useRouter } from 'next/router';
 import { Fragment, useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 import useSWR from 'swr';
 
 const messages = defineMessages('components.Settings.SettingsLogs', {

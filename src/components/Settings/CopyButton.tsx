@@ -2,7 +2,7 @@ import type { TooltipConfig } from '@app/components/Common/Tooltip';
 import Tooltip from '@app/components/Common/Tooltip';
 import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
 import React, { useCallback, useRef, useState } from 'react';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 
 type CopyButtonProps = {
   textToCopy: string;

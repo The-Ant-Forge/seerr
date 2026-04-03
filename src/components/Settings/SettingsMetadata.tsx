@@ -12,7 +12,7 @@ import axios from 'axios';
 import { Form, Formik } from 'formik';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 import useSWR from 'swr';
 
 const messages = defineMessages('components.Settings', {
@@ -134,7 +134,7 @@ const SettingsMetadata = () => {
       }
 
       // In case of error without usable data
-      throw new Error('Failed to test connection');
+      throw new Error('Failed to test connection', { cause: error });
     }
   };
 
@@ -203,7 +203,7 @@ const SettingsMetadata = () => {
         }
       }
 
-      throw new Error('Failed to save Metadata settings');
+      throw new Error('Failed to save Metadata settings', { cause: error });
     }
   };
 

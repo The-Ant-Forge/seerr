@@ -4,7 +4,7 @@ import { Transition } from '@headlessui/react';
 import axios from 'axios';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 
 const messages = defineMessages(
   'components.PersonDetails.ActorSubscribeModal',

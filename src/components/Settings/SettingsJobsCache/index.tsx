@@ -25,7 +25,7 @@ import cronstrue from 'cronstrue/i18n';
 import { Fragment, useReducer, useState } from 'react';
 import type { MessageDescriptor } from 'react-intl';
 import { FormattedRelativeTime, useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 import useSWR from 'swr';
 
 const messages: { [messageName: string]: MessageDescriptor } = defineMessages(

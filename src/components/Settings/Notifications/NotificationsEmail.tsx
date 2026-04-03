@@ -9,7 +9,7 @@ import axios from 'axios';
 import { Field, Form, Formik } from 'formik';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 import useSWR, { mutate } from 'swr';
 import validator from 'validator';
 import * as Yup from 'yup';

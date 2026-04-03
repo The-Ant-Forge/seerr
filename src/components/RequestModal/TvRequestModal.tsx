@@ -20,7 +20,7 @@ import type { TvDetails } from '@server/models/Tv';
 import axios from 'axios';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 import useSWR, { mutate } from 'swr';
 
 const messages = defineMessages('components.RequestModal', {

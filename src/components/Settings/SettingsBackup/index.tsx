@@ -9,7 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 
 const messages = defineMessages('components.Settings.SettingsBackup', {
   backup: 'Backup & Restore',

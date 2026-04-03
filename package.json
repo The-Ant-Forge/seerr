@@ -8,7 +8,7 @@
     "postinstall": "next telemetry disable",
     "dev": "nodemon -e ts --watch server --watch seerr-api.yml -e .json,.ts,.yml -x ts-node -r tsconfig-paths/register --files --project server/tsconfig.json server/index.ts",
     "build:server": "tsc --project server/tsconfig.json && copyfiles -u 2 server/templates/**/*.{html,pug} dist/templates && tsc-alias -p server/tsconfig.json",
-    "build:next": "next build --webpack",
+    "build:next": "next build",
     "build": "pnpm build:next && pnpm build:server",
     "lint": "eslint \"./server/**/*.{ts,tsx}\" \"./src/**/*.{ts,tsx}\" --cache",
     "lintfix": "eslint \"./server/**/*.{ts,tsx}\" \"./src/**/*.{ts,tsx}\" --fix",
@@ -77,7 +77,6 @@
     "react-intl": "^10.1.1",
     "react-markdown": "10.1.0",
     "react-select": "5.10.2",
-    "react-toast-notifications": "2.5.1",
     "react-transition-group": "^4.4.5",
     "reflect-metadata": "0.2.2",
     "rehype-sanitize": "^6.0.0",
@@ -120,7 +119,7 @@
     "@types/nodemailer": "^7.0.11",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@types/react-transition-group": "4.4.12",
+    "@types/react-transition-group": "^4.4.12",
     "@types/secure-random-password": "0.2.3",
     "@types/swagger-ui-express": "4.1.8",
     "@types/ua-parser-js": "^0.7.39",
@@ -167,7 +166,7 @@
   "lint-staged": {
     "**/*.{ts,tsx}": [
       "prettier --write",
-      "eslint"
+      "eslint --no-warn-ignored --max-warnings=-1"
     ],
     "**/*.js": [
       "prettier --write"

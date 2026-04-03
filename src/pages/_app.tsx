@@ -3,7 +3,6 @@ import LoadingBar from '@app/components/LoadingBar';
 import PWAHeader from '@app/components/PWAHeader';
 import ServiceWorkerSetup from '@app/components/ServiceWorkerSetup';
 import StatusChecker from '@app/components/StatusChecker';
-import Toast from '@app/components/Toast';
 import ToastContainer from '@app/components/ToastContainer';
 import { InteractionProvider } from '@app/context/InteractionContext';
 import { LanguageContext } from '@app/context/LanguageContext';
@@ -23,7 +22,7 @@ import App from 'next/app';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
 import { IntlProvider } from 'react-intl';
-import { ToastProvider } from 'react-toast-notifications';
+import { ToastProvider } from '@app/context/ToastContext';
 import { SWRConfig } from 'swr';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -201,7 +200,7 @@ const CoreApp: Omit<NextAppComponentType, 'origGetInitialProps'> = ({
           <LoadingBar />
           <SettingsProvider currentSettings={currentSettings}>
             <InteractionProvider>
-              <ToastProvider components={{ Toast, ToastContainer }}>
+              <ToastProvider>
                 <Head>
                   <title>{currentSettings.applicationTitle}</title>
                   <meta
@@ -215,6 +214,7 @@ const CoreApp: Omit<NextAppComponentType, 'origGetInitialProps'> = ({
                 <StatusChecker />
                 <ServiceWorkerSetup />
                 <UserContext initialUser={user}>{component}</UserContext>
+                <ToastContainer />
               </ToastProvider>
             </InteractionProvider>
           </SettingsProvider>

@@ -24,7 +24,7 @@ import axios from 'axios';
 import { useRef, useState } from 'react';
 import { useDrag, useDrop } from 'react-aria';
 import { useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 
 const messages = defineMessages('components.Discover.DiscoverSliderEdit', {
   deletesuccess: 'Sucessfully deleted slider.',

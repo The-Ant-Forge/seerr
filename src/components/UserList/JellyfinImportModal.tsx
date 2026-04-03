@@ -9,7 +9,7 @@ import type { UserResultsResponse } from '@server/interfaces/api/userInterfaces'
 import axios from 'axios';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 import useSWR from 'swr';
 
 interface JellyfinImportProps {

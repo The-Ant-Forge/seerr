@@ -7,7 +7,7 @@ import { MediaServerType, ServerType } from '@server/constants/server';
 import axios from 'axios';
 import { Field, Form, Formik } from 'formik';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 import validator from 'validator';
 import * as Yup from 'yup';
 
@@ -128,7 +128,7 @@ function JellyfinSetup({
             serverType: serverType,
           });
         } catch (e) {
-          let errorMessage = null;
+          let errorMessage;
           switch (e?.response?.data?.message) {
             case ApiErrorCode.InvalidUrl:
               errorMessage = messages.invalidurlerror;

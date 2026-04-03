@@ -8,7 +8,7 @@ import { hasPermission } from '@server/lib/permissions';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 
 interface BulkEditProps {
   selectedUserIds: number[];

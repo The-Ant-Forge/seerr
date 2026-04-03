@@ -19,7 +19,7 @@ import { Field, Form, Formik } from 'formik';
 import { useCallback, useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
 import AsyncSelect from 'react-select/async';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 import * as Yup from 'yup';
 
 const messages = defineMessages('components.Discover.CreateSlider', {

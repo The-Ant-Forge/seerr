@@ -9,7 +9,7 @@ import axios from 'axios';
 import { Field, Form, Formik } from 'formik';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 import useSWR from 'swr';
 import * as Yup from 'yup';
 
@@ -138,7 +138,7 @@ const NotificationsGotify = () => {
             addToast(
               intl.formatMessage(messages.toastGotifyTestSending),
               {
-                autoDsmiss: false,
+                autoDismiss: false,
                 appearance: 'info',
               },
               (id) => {

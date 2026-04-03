@@ -68,6 +68,8 @@ module.exports = [
       'no-console': 'warn',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/purity': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
       'formatjs/no-offset': 'error',
       'no-unused-vars': 'off',
@@ -97,6 +99,6 @@ module.exports = [
 
   // Ignore patterns
   {
-    ignores: ['node_modules/', '.next/', 'dist/', 'config/'],
+    ignores: ['node_modules/', '.next/', 'dist/', 'config/', 'next-env.d.ts'],
   },
 ];

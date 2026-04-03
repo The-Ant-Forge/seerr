@@ -7,7 +7,7 @@ import axios from 'axios';
 import Image from 'next/image';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 import useSWR from 'swr';
 
 interface PlexImportProps {

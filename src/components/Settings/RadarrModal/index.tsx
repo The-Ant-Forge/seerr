@@ -11,7 +11,7 @@ import { Field, Formik } from 'formik';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import Select from 'react-select';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 import * as Yup from 'yup';
 
 type OptionType = {

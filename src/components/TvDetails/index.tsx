@@ -72,7 +72,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 import useSWR from 'swr';
 
 const messages = defineMessages('components.TvDetails', {
@@ -1275,10 +1275,9 @@ const TvDetails = ({ tv }: TvDetailsProps) => {
                 <span className="media-fact-value flex flex-row flex-wrap gap-5">
                   {streamingProviders.map((p) => {
                     return (
-                      <Tooltip content={p.name}>
+                      <Tooltip key={`provider-${p.id}`} content={p.name}>
                         <span
                           className="opacity-50 transition duration-300 hover:opacity-100"
-                          key={`provider-${p.id}`}
                         >
                           <CachedImage
                             type="tmdb"

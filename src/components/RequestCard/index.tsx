@@ -27,7 +27,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useInView } from '@app/hooks/useInView';
 import { useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 import useSWR, { mutate } from 'swr';
 
 const messages = defineMessages('components.RequestCard', {

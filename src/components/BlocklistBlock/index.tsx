@@ -13,7 +13,7 @@ import axios from 'axios';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useToasts } from 'react-toast-notifications';
+import { useToasts } from '@app/context/ToastContext';
 import useSWR from 'swr';
 
 const messages = defineMessages('component.BlocklistBlock', {
