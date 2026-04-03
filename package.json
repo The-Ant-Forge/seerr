@@ -88,6 +88,7 @@
     "typeorm": "0.3.28",
     "ua-parser-js": "^2.0.9",
     "undici": "^8.0.0",
+    "use-sync-external-store": "^1.6.0",
     "validator": "^13.15.35",
     "web-push": "3.6.7",
     "winston": "3.19.0",
