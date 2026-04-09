@@ -159,9 +159,14 @@ export class MediaRequest {
           throw new BlocklistedMediaError('This media is blocklisted.');
         }
 
-        // Skip if media is already available for the requested quality track
+        // Skip if media is already available for the requested quality track.
+        // For TV, season-level dedup handles this — new seasons may exist
+        // beyond what's currently available.
         const currentStatus = requestBody.is4k ? media.status4k : media.status;
-        if (currentStatus === MediaStatus.AVAILABLE) {
+        if (
+          currentStatus === MediaStatus.AVAILABLE &&
+          requestBody.mediaType === MediaType.MOVIE
+        ) {
           throw new DuplicateMediaRequestError(
             'This media is already available.'
           );
