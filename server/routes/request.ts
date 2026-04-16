@@ -595,8 +595,8 @@ requestRoutes.delete('/:requestId', async (req, res, next) => {
 
     if (
       !req.user?.hasPermission(Permission.MANAGE_REQUESTS) &&
-      request.requestedBy.id !== req.user?.id &&
-      request.status !== MediaRequestStatus.PENDING
+      (request.requestedBy.id !== req.user?.id ||
+        request.status !== MediaRequestStatus.PENDING)
     ) {
       return next({
         status: 403,
