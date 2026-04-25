@@ -20,6 +20,7 @@ import axios from 'axios';
 import type { AppInitialProps, AppProps } from 'next/app';
 import App from 'next/app';
 import Head from 'next/head';
+import type React from 'react';
 import { useEffect, useState } from 'react';
 import { IntlProvider } from 'react-intl';
 import { ToastProvider } from '@app/context/ToastContext';
@@ -250,6 +251,7 @@ CoreApp.getInitialProps = async (initialProps) => {
     emailEnabled: false,
     newPlexLogin: true,
     youtubeUrl: '',
+    plexClientIdentifier: '',
   };
 
   if (ctx.res) {
