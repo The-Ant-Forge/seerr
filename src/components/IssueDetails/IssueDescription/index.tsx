@@ -153,7 +153,7 @@ const IssueDescription = ({
                 rehypeSanitize,
                 {
                   ...defaultSchema,
-                  tagNames: ['p', 'img', 'strong', 'em'],
+                  tagNames: ['p', 'img', 'strong', 'em', 'ul', 'ol', 'li'],
                 },
               ],
             ]}
