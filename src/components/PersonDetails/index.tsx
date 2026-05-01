@@ -316,7 +316,7 @@ const PersonDetails = () => {
             <div className="flex items-center gap-3">
               <h1 className="text-3xl text-white lg:text-4xl">{data.name}</h1>
               <Button
-                buttonType={subscription ? 'primary' : 'ghost'}
+                buttonType={subscription ? 'primary' : 'default'}
                 onClick={() => setShowSubscribeModal(true)}
               >
                 {subscription ? (
