@@ -41,6 +41,7 @@ interface ProcessOptions {
   externalServiceSlug?: string;
   title?: string;
   processing?: boolean;
+  hasFile?: boolean;
 }
 
 export interface ProcessableSeason {
@@ -104,6 +105,7 @@ class BaseScanner<T> {
       externalServiceSlug,
       processing = false,
       title = 'Unknown Title',
+      hasFile = true,
     }: ProcessOptions = {}
   ): Promise<void> {
     const mediaRepository = getRepository(Media);
@@ -115,15 +117,28 @@ class BaseScanner<T> {
         let changedExisting = false;
 
         if (existing[is4k ? 'status4k' : 'status'] !== MediaStatus.AVAILABLE) {
-          existing[is4k ? 'status4k' : 'status'] = !processing
-            ? MediaStatus.AVAILABLE
-            : existing[is4k ? 'status4k' : 'status'] === MediaStatus.DELETED
-              ? MediaStatus.DELETED
-              : MediaStatus.PROCESSING;
-          if (mediaAddedAt) {
-            existing.mediaAddedAt = mediaAddedAt;
+          const statusField = is4k ? 'status4k' : 'status';
+          const previousStatus = existing[statusField];
+
+          existing[statusField] =
+            !processing && hasFile
+              ? MediaStatus.AVAILABLE
+              : !processing &&
+                  !hasFile &&
+                  previousStatus === MediaStatus.PROCESSING
+                ? MediaStatus.UNKNOWN
+                : processing
+                  ? previousStatus === MediaStatus.DELETED
+                    ? MediaStatus.DELETED
+                    : MediaStatus.PROCESSING
+                  : previousStatus;
+
+          if (existing[statusField] !== previousStatus) {
+            if (mediaAddedAt) {
+              existing.mediaAddedAt = mediaAddedAt;
+            }
+            changedExisting = true;
           }
-          changedExisting = true;
         }
 
         if (!changedExisting && !existing.mediaAddedAt && mediaAddedAt) {
@@ -192,6 +207,10 @@ class BaseScanner<T> {
           this.log(`Title already exists and no changes detected for ${title}`);
         }
       } else {
+        if (!processing && !hasFile) {
+          return;
+        }
+
         const newMedia = new Media();
         newMedia.tmdbId = tmdbId;
         newMedia.imdbId = imdbId;
