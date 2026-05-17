@@ -72,6 +72,22 @@ echo "==> Installing production dependencies..."
 cd "$DEST"
 CI=true pnpm install --prod
 
+# Rebuild native modules. pnpm install sometimes skips the rebuild when the
+# package version changes but the build script entry stays the same, leaving
+# stale or missing .node binaries (manifests as "Could not locate the bindings
+# file" at startup). Explicit rebuild keeps deploys bulletproof.
+#
+# Non-fatal: if Seerr is still running it holds the .node files open and
+# node-gyp's clean step fails with EPERM. In that case just warn — the
+# existing binaries are still usable as long as the package version
+# hasn't changed.
+echo "==> Rebuilding native modules..."
+if ! pnpm rebuild better-sqlite3 sharp bcrypt; then
+  echo "==> WARNING: native module rebuild failed (Seerr may be running)."
+  echo "    If you upgraded better-sqlite3/sharp/bcrypt, stop Seerr and re-run:"
+  echo "      cd $DEST && pnpm rebuild better-sqlite3 sharp bcrypt"
+fi
+
 echo ""
 echo "==> Deploy complete ($( [ "$CLEAN" = true ] && echo "clean" || echo "safe" ))."
 echo "    Start with: double-click $DEST/Seerr-Tray.vbs (system tray)"
