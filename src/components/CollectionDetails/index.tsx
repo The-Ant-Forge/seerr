@@ -18,7 +18,7 @@ import type { Collection } from '@server/models/Collection';
 import { uniq } from 'lodash';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import useSWR from 'swr';
 
@@ -178,12 +178,12 @@ const CollectionDetails = ({ collection }: CollectionDetailsProps) => {
           </Link>
         ))
         .reduce((prev, curr) => (
-          <>
+          <Fragment key={`${prev.key}-${curr.key}`}>
             {intl.formatMessage(globalMessages.delimitedlist, {
               a: prev,
               b: curr,
             })}
-          </>
+          </Fragment>
         ))
     );
   }
@@ -283,11 +283,11 @@ const CollectionDetails = ({ collection }: CollectionDetailsProps) => {
               collectionAttributes
                 .map((t, k) => <span key={k}>{t}</span>)
                 .reduce((prev, curr) => (
-                  <>
+                  <Fragment key={`${prev.key}-${curr.key}`}>
                     {prev}
                     <span>|</span>
                     {curr}
-                  </>
+                  </Fragment>
                 ))}
           </span>
         </div>

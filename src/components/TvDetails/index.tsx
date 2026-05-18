@@ -70,7 +70,7 @@ import { countries } from 'country-flag-icons';
 import 'country-flag-icons/3x2/flags.css';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { useToasts } from '@app/context/ToastContext';
 import useSWR from 'swr';
@@ -276,12 +276,12 @@ const TvDetails = ({ tv }: TvDetailsProps) => {
           </Link>
         ))
         .reduce((prev, curr) => (
-          <>
+          <Fragment key={`${prev.key}-${curr.key}`}>
             {intl.formatMessage(globalMessages.delimitedlist, {
               a: prev,
               b: curr,
             })}
-          </>
+          </Fragment>
         ))
     );
   }
@@ -580,11 +580,11 @@ const TvDetails = ({ tv }: TvDetailsProps) => {
               seriesAttributes
                 .map((t, k) => <span key={k}>{t}</span>)
                 .reduce((prev, curr) => (
-                  <>
+                  <Fragment key={`${prev.key}-${curr.key}`}>
                     {prev}
                     <span>|</span>
                     {curr}
-                  </>
+                  </Fragment>
                 ))}
           </span>
         </div>
@@ -1257,12 +1257,12 @@ const TvDetails = ({ tv }: TvDetailsProps) => {
                       </Link>
                     ))
                     .reduce((prev, curr) => (
-                      <>
+                      <Fragment key={`${prev.key}-${curr.key}`}>
                         {intl.formatMessage(globalMessages.delimitedlist, {
                           a: prev,
                           b: curr,
                         })}
-                      </>
+                      </Fragment>
                     ))}
                 </span>
               </div>
