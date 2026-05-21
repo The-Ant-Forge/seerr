@@ -295,13 +295,14 @@ export const KeywordSelector = ({
   onChange,
 }: BaseSelectorMultiProps | BaseSelectorSingleProps) => {
   const intl = useIntl();
-  const [defaultDataValue, setDefaultDataValue] = useState<
-    { label: string; value: number }[] | null
+  const [selectedValue, setSelectedValue] = useState<
+    MultiValue<SingleVal> | SingleValue<SingleVal> | null
   >(null);
 
   useEffect(() => {
     const loadDefaultKeywords = async (): Promise<void> => {
       if (!defaultValue) {
+        setSelectedValue(null);
         return;
       }
 
@@ -318,16 +319,16 @@ export const KeywordSelector = ({
         (keyword): keyword is Keyword => keyword !== null
       );
 
-      setDefaultDataValue(
-        validKeywords.map((keyword) => ({
-          label: keyword.name,
-          value: keyword.id,
-        }))
-      );
+      const nextValue = validKeywords.map((keyword) => ({
+        label: keyword.name,
+        value: keyword.id,
+      }));
+
+      setSelectedValue(isMulti ? nextValue : (nextValue[0] ?? null));
     };
 
     loadDefaultKeywords();
-  }, [defaultValue]);
+  }, [defaultValue, isMulti]);
 
   const loadKeywordOptions = async (inputValue: string) => {
     const results = await axios.get<TmdbKeywordSearchResponse>(
@@ -347,7 +348,6 @@ export const KeywordSelector = ({
 
   return (
     <AsyncSelect
-      key={`keyword-select-${defaultDataValue}`}
       inputId="data"
       isMulti={isMulti}
       isDisabled={isDisabled}
@@ -358,10 +358,11 @@ export const KeywordSelector = ({
           ? intl.formatMessage(messages.starttyping)
           : intl.formatMessage(messages.nooptions)
       }
-      defaultValue={defaultDataValue}
+      value={selectedValue}
       loadOptions={loadKeywordOptions}
       placeholder={intl.formatMessage(messages.searchKeywords)}
       onChange={(value) => {
+        setSelectedValue(value);
         (onChange as AnyOnChange)(value);
       }}
     />
