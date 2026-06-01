@@ -1591,6 +1591,10 @@ components:
               type: boolean
             token:
               type: string
+            priority:
+              type: number
+            locale:
+              type: string
     NotificationEmailSettings:
       type: object
       properties:
