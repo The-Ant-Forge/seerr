@@ -293,7 +293,15 @@ class DiscordAgent
         allowedRoleIds.push(settings.options.webhookRoleId);
       }
 
-      await axios.post(settings.options.webhookUrl, {
+      const webhookUrl = new URL(settings.options.webhookUrl);
+      if (settings.options.webhookThreadId) {
+        webhookUrl.searchParams.set(
+          'thread_id',
+          settings.options.webhookThreadId
+        );
+      }
+
+      await axios.post(webhookUrl.toString(), {
         username: settings.options.botUsername
           ? settings.options.botUsername
           : getSettings().main.applicationTitle,
