@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { TagIcon } from '@heroicons/react/24/outline';
 import React from 'react';
 

@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import BlocklistBlock from '@app/components/BlocklistBlock';
 import Button from '@app/components/Common/Button';
 import CachedImage from '@app/components/Common/CachedImage';
