@@ -6,6 +6,7 @@ import AdvancedRequester from '@app/components/RequestModal/AdvancedRequester';
 import QuotaDisplay from '@app/components/RequestModal/QuotaDisplay';
 import SearchByNameModal from '@app/components/RequestModal/SearchByNameModal';
 import useSettings from '@app/hooks/useSettings';
+import useToasts from '@app/hooks/useToasts';
 import { useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
@@ -20,7 +21,6 @@ import type { TvDetails } from '@server/models/Tv';
 import axios from 'axios';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
-import { useToasts } from '@app/context/ToastContext';
 import useSWR, { mutate } from 'swr';
 
 const messages = defineMessages('components.RequestModal', {
@@ -157,7 +157,7 @@ const TvRequestModal = ({
       if (onComplete) {
         onComplete(MediaStatus.PENDING);
       }
-    } catch (e) {
+    } catch {
       addToast(<span>{intl.formatMessage(messages.errorediting)}</span>, {
         appearance: 'error',
         autoDismiss: true,
@@ -199,6 +199,7 @@ const TvRequestModal = ({
         tvdbId: tvdbId ?? data?.externalIds.tvdbId,
         mediaType: 'tv',
         is4k,
+        ignoreQuota: requestOverrides?.ignoreQuota,
         seasons: settings.currentSettings.partialRequestsEnabled
           ? selectedSeasons.sort((a, b) => a - b)
           : getAllSeasons().filter(
@@ -222,7 +223,7 @@ const TvRequestModal = ({
           { appearance: 'success', autoDismiss: true }
         );
       }
-    } catch (e) {
+    } catch {
       addToast(intl.formatMessage(messages.requesterror), {
         appearance: 'error',
         autoDismiss: true,
@@ -265,6 +266,8 @@ const TvRequestModal = ({
       .filter(
         (season) =>
           (season[is4k ? 'status4k' : 'status'] === MediaStatus.AVAILABLE ||
+            season[is4k ? 'status4k' : 'status'] ===
+              MediaStatus.PARTIALLY_AVAILABLE ||
             season[is4k ? 'status4k' : 'status'] === MediaStatus.PROCESSING) &&
           !requestedSeasons.includes(season.seasonNumber)
       )
@@ -435,7 +438,8 @@ const TvRequestModal = ({
           ? false
           : !settings.currentSettings.partialRequestsEnabled &&
               quota?.tv.limit &&
-              unrequestedSeasons.length > quota.tv.limit
+              unrequestedSeasons.length > quota.tv.limit &&
+              !requestOverrides?.ignoreQuota
             ? true
             : getAllRequestedSeasons().length >= getAllSeasons().length ||
               (settings.currentSettings.partialRequestsEnabled &&
@@ -614,9 +618,7 @@ const TvRequestModal = ({
                                 }
                               }}
                               className={`relative inline-flex h-5 w-10 flex-shrink-0 cursor-pointer items-center justify-center pt-2 focus:outline-none ${
-                                (mediaSeason &&
-                                  mediaSeason[is4k ? 'status4k' : 'status'] !==
-                                    MediaStatus.PARTIALLY_AVAILABLE) ||
+                                mediaSeason ||
                                 (quota?.tv.limit &&
                                   currentlyRemaining <= 0 &&
                                   !isSelectedSeason(season.seasonNumber)) ||
@@ -629,10 +631,7 @@ const TvRequestModal = ({
                               <span
                                 aria-hidden="true"
                                 className={`${
-                                  (!!mediaSeason &&
-                                    mediaSeason[
-                                      is4k ? 'status4k' : 'status'
-                                    ] !== MediaStatus.PARTIALLY_AVAILABLE) ||
+                                  !!mediaSeason ||
                                   (!!seasonRequest &&
                                     !editingSeasons.includes(
                                       season.seasonNumber
@@ -645,10 +644,7 @@ const TvRequestModal = ({
                               <span
                                 aria-hidden="true"
                                 className={`${
-                                  (!!mediaSeason &&
-                                    mediaSeason[
-                                      is4k ? 'status4k' : 'status'
-                                    ] !== MediaStatus.PARTIALLY_AVAILABLE) ||
+                                  !!mediaSeason ||
                                   (!!seasonRequest &&
                                     !editingSeasons.includes(
                                       season.seasonNumber
@@ -726,6 +722,7 @@ const TvRequestModal = ({
           isAnime={data?.keywords.some(
             (keyword) => keyword.id === ANIME_KEYWORD_ID
           )}
+          quota={quota}
           onChange={(overrides) => setRequestOverrides(overrides)}
           requestUser={editRequest?.requestedBy}
           defaultOverrides={

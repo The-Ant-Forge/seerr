@@ -47,6 +47,7 @@ export type RequestOverrides = {
   tags?: number[];
   language?: number;
   user?: User;
+  ignoreQuota?: boolean;
 };
 
 interface AdvancedRequesterProps {
@@ -55,6 +56,7 @@ interface AdvancedRequesterProps {
   isAnime?: boolean;
   defaultOverrides?: RequestOverrides;
   requestUser?: User;
+  quota?: { movie: { limit?: number }; tv: { limit?: number } };
   onChange: (overrides: RequestOverrides) => void;
 }
 

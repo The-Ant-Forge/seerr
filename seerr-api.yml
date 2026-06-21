@@ -48,36 +48,6 @@ servers:
 
 components:
   schemas:
-    ActorSubscription:
-      type: object
-      properties:
-        id:
-          type: number
-        personId:
-          type: number
-        personName:
-          type: string
-        profilePath:
-          type: string
-          nullable: true
-        mediaFilter:
-          type: string
-          enum: [all, movie, tv]
-        creditType:
-          type: string
-          enum: [cast, crew, both]
-        minImdbRating:
-          type: number
-        action:
-          type: string
-          enum: [request, notify]
-        createdAt:
-          type: string
-          format: date-time
-        lastSyncedAt:
-          type: string
-          format: date-time
-          nullable: true
     Blocklist:
       type: object
       properties:
@@ -1297,6 +1267,10 @@ components:
           type: number
         rootFolder:
           type: string
+        ignoreQuota:
+          type: boolean
+          example: false
+          description: If true, this request will not count against the user's quota. Requires MANAGE_REQUESTS permission.
       required:
         - id
         - status
@@ -3301,24 +3275,6 @@ paths:
                     timestamp:
                       type: string
                       example: '2020-12-15T16:20:00.069Z'
-    delete:
-      summary: Clear logs
-      description: Deletes all log files from the server. Requires admin permissions.
-      tags:
-        - settings
-      responses:
-        '200':
-          description: Logs cleared successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Logs cleared.
-        '500':
-          description: Failed to clear logs
   /settings/notifications/email:
     get:
       summary: Get email notification settings
@@ -3939,82 +3895,6 @@ paths:
       responses:
         '204':
           description: All sliders reset to defaults
-  /settings/backup:
-    get:
-      summary: Download backup
-      description: Downloads a ZIP snapshot of the Seerr configuration and database.
-      tags:
-        - settings
-      responses:
-        '200':
-          description: Backup ZIP file
-          content:
-            application/zip:
-              schema:
-                type: string
-                format: binary
-  /settings/backup/restore:
-    post:
-      summary: Restore from backup
-      description: Uploads a backup ZIP to restore settings and database. Seerr will restart after a successful restore.
-      tags:
-        - settings
-      requestBody:
-        required: true
-        content:
-          application/zip:
-            schema:
-              type: string
-              format: binary
-      responses:
-        '200':
-          description: Restore successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  restartRequired:
-                    type: boolean
-                    example: true
-        '400':
-          description: Invalid backup file
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-  /settings/backup/restore/setup:
-    post:
-      summary: Restore from backup during setup
-      description: Uploads a backup ZIP to restore during initial setup. Only available when Seerr is not yet initialized.
-      tags:
-        - settings
-      requestBody:
-        required: true
-        content:
-          application/zip:
-            schema:
-              type: string
-              format: binary
-      responses:
-        '200':
-          description: Restore successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-        '403':
-          description: Seerr is already initialized
   /settings/about:
     get:
       summary: Get server stats
@@ -4575,6 +4455,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+  /user/jellyfin/{jellyfinUserId}:
+    get:
+      summary: Get user by Jellyfin user ID
+      description: |
+        Retrieves user details by Jellyfin user ID in a JSON object. Returns filtered data based on the caller's permissions.
+      tags:
+        - users
+      parameters:
+        - in: path
+          name: jellyfinUserId
+          required: true
+          schema:
+            type: string
+          description: The Jellyfin user ID (32-character hexadecimal string)
+      responses:
+        '200':
+          description: User details in JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
   /user/{userId}/requests:
     get:
       summary: Get requests for a specific user
@@ -4932,6 +4835,49 @@ paths:
       responses:
         '204':
           description: Succesfully removed media item
+  /blocklist/collection/{collectionId}:
+    post:
+      summary: Add collection to blocklist
+      description: Adds all movies in a collection to the blocklist
+      tags:
+        - blocklist
+      parameters:
+        - in: path
+          name: collectionId
+          description: Collection ID
+          required: true
+          example: '1424991'
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Successfully added collection to blocklist
+        '500':
+          description: Error adding collection to blocklist
+    delete:
+      summary: Remove collection from blocklist
+      description: Removes all movies in a collection from the blocklist
+      tags:
+        - blocklist
+      parameters:
+        - in: path
+          name: collectionId
+          description: Collection ID
+          required: true
+          example: '1424991'
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Successfully removed collection from blocklist
+        '500':
+          description: Error removing collection from blocklist
   /watchlist:
     post:
       summary: Add media to watchlist
@@ -4975,145 +4921,6 @@ paths:
       responses:
         '204':
           description: Succesfully removed watchlist item
-  /actorSubscription:
-    get:
-      summary: List actor subscriptions
-      description: Returns the current user's actor subscriptions.
-      tags:
-        - actorSubscription
-      parameters:
-        - in: query
-          name: take
-          schema:
-            type: number
-        - in: query
-          name: skip
-          schema:
-            type: number
-      responses:
-        '200':
-          description: Actor subscriptions list
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  pageInfo:
-                    $ref: '#/components/schemas/PageInfo'
-                  results:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ActorSubscription'
-    post:
-      summary: Follow an actor
-      description: Creates a new actor subscription. Seeds known credits from TMDB.
-      tags:
-        - actorSubscription
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - personId
-              properties:
-                personId:
-                  type: number
-                mediaFilter:
-                  type: string
-                  enum: [all, movie, tv]
-                creditType:
-                  type: string
-                  enum: [cast, crew, both]
-                minImdbRating:
-                  type: number
-                action:
-                  type: string
-                  enum: [request, notify]
-      responses:
-        '201':
-          description: Subscription created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ActorSubscription'
-        '409':
-          description: Already following this person
-  /actorSubscription/{id}:
-    put:
-      summary: Update actor subscription
-      description: Updates settings for an existing actor subscription.
-      tags:
-        - actorSubscription
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: number
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                mediaFilter:
-                  type: string
-                  enum: [all, movie, tv]
-                creditType:
-                  type: string
-                  enum: [cast, crew, both]
-                minImdbRating:
-                  type: number
-                action:
-                  type: string
-                  enum: [request, notify]
-                backfill:
-                  type: boolean
-                  description: When true, resets tracked credits so the next sync re-processes all credits.
-      responses:
-        '200':
-          description: Subscription updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ActorSubscription'
-    delete:
-      summary: Unfollow an actor
-      description: Deletes an actor subscription.
-      tags:
-        - actorSubscription
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: number
-      responses:
-        '204':
-          description: Subscription deleted
-  /actorSubscription/person/{personId}:
-    get:
-      summary: Check actor subscription
-      description: Returns the current user's subscription for a given person, or null.
-      tags:
-        - actorSubscription
-      parameters:
-        - in: path
-          name: personId
-          required: true
-          schema:
-            type: number
-      responses:
-        '200':
-          description: Subscription details or null
-          content:
-            application/json:
-              schema:
-                nullable: true
-                allOf:
-                  - $ref: '#/components/schemas/ActorSubscription'
   /user/{userId}/watchlist:
     get:
       summary: Get the Plex watchlist for a specific user
@@ -6601,6 +6408,10 @@ paths:
                 userId:
                   type: number
                   nullable: true
+                ignoreQuota:
+                  type: boolean
+                  example: false
+                  description: If true, this request will not count against the user's quota. Requires MANAGE_REQUESTS permission.
               required:
                 - mediaType
                 - mediaId
@@ -6644,29 +6455,6 @@ paths:
                     type: number
                   completed:
                     type: number
-  /request/resync:
-    post:
-      summary: Resync requests with Radarr/Sonarr
-      description: |
-        Checks all approved/processing requests against Radarr/Sonarr to detect orphaned requests
-        where the media no longer exists in the service. Updates status of orphaned requests to failed.
-        Requires the `MANAGE_REQUESTS` permission.
-      tags:
-        - request
-      responses:
-        '200':
-          description: Resync results
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  synced:
-                    type: number
-                    example: 3
-                  failed:
-                    type: number
-                    example: 0
   /request/{requestId}:
     get:
       summary: Get MediaRequest
@@ -7321,46 +7109,6 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/MediaInfo'
-  /media/bulk-remove:
-    post:
-      summary: Bulk remove media items
-      description: |
-        Removes multiple media items from Radarr/Sonarr and deletes them from Seerr.
-        Requires the `MANAGE_REQUESTS` permission.
-      tags:
-        - media
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - mediaIds
-              properties:
-                mediaIds:
-                  type: array
-                  items:
-                    type: number
-                  example: [1, 2, 3]
-      responses:
-        '200':
-          description: Bulk remove results
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  removed:
-                    type: number
-                    example: 2
-                  failed:
-                    type: number
-                    example: 1
-                  errors:
-                    type: array
-                    items:
-                      type: string
   /media/{mediaId}:
     delete:
       summary: Delete media item

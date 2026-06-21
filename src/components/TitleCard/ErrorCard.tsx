@@ -1,5 +1,5 @@
 import Button from '@app/components/Common/Button';
-import useToasts from '@app/hooks/useToasts';
+import { useToasts } from '@app/context/ToastContext';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
 import { CheckIcon, TrashIcon } from '@heroicons/react/24/solid';
